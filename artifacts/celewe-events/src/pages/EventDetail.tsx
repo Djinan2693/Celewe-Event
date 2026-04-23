@@ -1,15 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "wouter";
-import { Calendar, MapPin, Clock, ArrowLeft, Ticket, AlertCircle } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowLeft, Ticket, AlertCircle, CreditCard } from "lucide-react";
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Setup: (opts: { token: string; eventCallback?: (e: unknown) => void }) => void;
+      Environment: { set: (env: string) => void };
+      Checkout: {
+        open: (opts: {
+          items: { priceId: string; quantity: number }[];
+          customData?: Record<string, string>;
+          settings?: {
+            successUrl?: string;
+            displayMode?: string;
+            theme?: string;
+            locale?: string;
+          };
+        }) => void;
+      };
+    };
+  }
+}
+
+function usePaddle() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN as string | undefined;
+    if (!clientToken || !window.Paddle) return;
+
+    const paddleEnv = (import.meta.env.VITE_PADDLE_ENV as string | undefined) ?? "sandbox";
+    if (paddleEnv === "sandbox") {
+      window.Paddle.Environment.set("sandbox");
+    }
+
+    window.Paddle.Setup({ token: clientToken });
+    setReady(true);
+  }, []);
+
+  return ready;
+}
 
 export function EventDetail() {
   const { slug } = useParams();
   const event = events.find(e => e.slug === slug);
-  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const paddleReady = usePaddle();
 
   if (!event) {
     return (
@@ -23,19 +63,48 @@ export function EventDetail() {
     );
   }
 
+  const hasPaddle = !!(event.paddlePriceId && paddleReady && window.Paddle);
+  const baseUrl = window.location.origin + (import.meta.env.BASE_URL ?? "/");
+
+  const openPaddleCheckout = useCallback(() => {
+    if (!window.Paddle || !event.paddlePriceId) return;
+    setCheckoutLoading(true);
+
+    try {
+      window.Paddle.Checkout.open({
+        items: [{ priceId: event.paddlePriceId, quantity: 1 }],
+        customData: {
+          eventId: event.id,
+          eventTitle: event.title,
+          eventDate: event.date,
+          eventVenue: event.venue,
+        },
+        settings: {
+          successUrl: `${baseUrl}payment/success`,
+          displayMode: "overlay",
+          theme: "dark",
+        },
+      });
+    } finally {
+      setTimeout(() => setCheckoutLoading(false), 1000);
+    }
+  }, [event, baseUrl]);
+
+  const showGCashModal = !hasPaddle;
+
   return (
     <div className="flex flex-col pb-24">
       {/* Hero Image */}
       <div className="relative h-[50vh] min-h-[400px] w-full">
         <div className="absolute inset-0 z-0">
-          <img 
-            src={event.image || "/images/hero-bg.png"} 
-            alt={event.title} 
+          <img
+            src={event.image || "/images/hero-bg.png"}
+            alt={event.title}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         </div>
-        
+
         <div className="container max-w-[1200px] mx-auto px-4 md:px-6 relative z-10 h-full flex flex-col justify-end pb-12">
           <Link href="/events" className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors mb-6 uppercase text-sm tracking-wider">
             <ArrowLeft size={16} /> Back to Events
@@ -64,132 +133,117 @@ export function EventDetail() {
             <div>
               <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">About the Event</h2>
               <div className="prose prose-invert max-w-none">
-                <p className="text-lg text-foreground/90 leading-relaxed">
-                  {event.description}
-                </p>
+                <p className="text-lg text-foreground/90 leading-relaxed">{event.description}</p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   Prepare for a night where reality blurs and pure magic takes over. Céléwé Events strictly curates the guest list to ensure a cohesive, premium vibe throughout the night. Immersive decor, top-tier entertainment, and a crowd that understands the assignment.
                 </p>
               </div>
             </div>
-            
+
             <div>
               <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">What to Expect</h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-muted-foreground">
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span>Premium venue setting and atmospheric design</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span>Exclusive performances and live sets</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span>High-end mixology and bottle service</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                  <span>Professional photography coverage</span>
-                </li>
+                {["Premium venue setting and atmospheric design", "Exclusive performances and live sets", "High-end mixology and bottle service", "Professional photography coverage"].map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
+
+            {/* How to Pay */}
+            {showGCashModal && (
+              <div>
+                <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">How to Purchase</h2>
+                <div className="space-y-5">
+                  {[
+                    { step: "1", title: "Send Payment via GCash", desc: `Send ${event.price} to GCash: 0917 123 4567` },
+                    { step: "2", title: "Screenshot Your Receipt", desc: "Take a screenshot of your successful GCash transaction." },
+                    { step: "3", title: "Submit Your Details", desc: "Fill out the ticketing form and upload proof of payment." },
+                    { step: "4", title: "Get Confirmed", desc: "Receive your digital ticket and QR code within 24 hours." },
+                  ].map(({ step, title, desc }) => (
+                    <div key={step} className="flex gap-5">
+                      <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold font-heading shrink-0 text-sm">
+                        {step}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-white mb-1">{title}</h4>
+                        <p className="text-sm text-muted-foreground">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar / Ticket Box */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 bg-card border border-border/50 p-6 md:p-8 shadow-2xl">
               <div className="mb-8">
-                <div className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Price</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Price per person</div>
                 <div className="text-4xl font-heading text-primary">{event.price}</div>
-                <div className="text-xs text-muted-foreground mt-2">Per person. Includes entrance and welcome drink.</div>
+                <div className="text-xs text-muted-foreground mt-2">Includes entrance and welcome drink.</div>
               </div>
-              
-              <div className="space-y-6 mb-8">
+
+              <div className="space-y-5 mb-8">
                 <div className="flex items-start gap-4">
-                  <Calendar className="text-primary mt-1 shrink-0" />
+                  <Calendar className="text-primary mt-1 shrink-0" size={18} />
                   <div>
-                    <div className="font-medium text-white">Date</div>
-                    <div className="text-muted-foreground">{event.date}</div>
+                    <div className="font-medium text-white text-sm">Date</div>
+                    <div className="text-muted-foreground text-sm">{event.date}</div>
                   </div>
                 </div>
-                
                 <div className="flex items-start gap-4">
-                  <Clock className="text-primary mt-1 shrink-0" />
+                  <Clock className="text-primary mt-1 shrink-0" size={18} />
                   <div>
-                    <div className="font-medium text-white">Time</div>
-                    <div className="text-muted-foreground">{event.time}</div>
+                    <div className="font-medium text-white text-sm">Time</div>
+                    <div className="text-muted-foreground text-sm">{event.time}</div>
                   </div>
                 </div>
-                
                 <div className="flex items-start gap-4">
-                  <MapPin className="text-primary mt-1 shrink-0" />
+                  <MapPin className="text-primary mt-1 shrink-0" size={18} />
                   <div>
-                    <div className="font-medium text-white">Venue</div>
-                    <div className="text-muted-foreground">{event.venue}</div>
+                    <div className="font-medium text-white text-sm">Venue</div>
+                    <div className="text-muted-foreground text-sm">{event.venue}</div>
                   </div>
                 </div>
               </div>
 
-              <Dialog open={ticketModalOpen} onOpenChange={setTicketModalOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-lg tracking-wide uppercase"
+              {hasPaddle ? (
+                <Button
+                  onClick={openPaddleCheckout}
+                  disabled={event.sold_out || checkoutLoading}
+                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium"
+                >
+                  <CreditCard className="mr-2" size={18} />
+                  {checkoutLoading ? "Opening checkout..." : event.sold_out ? "Sold Out" : "Buy Ticket"}
+                </Button>
+              ) : (
+                <a href={event.ticketLink} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button
                     disabled={event.sold_out}
+                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium"
                   >
-                    <Ticket className="mr-2" />
+                    <Ticket className="mr-2" size={18} />
                     {event.sold_out ? "Sold Out" : "Buy Ticket"}
                   </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-card border-border/50 sm:max-w-md rounded-none">
-                  <DialogHeader>
-                    <DialogTitle className="font-heading text-2xl">Ticket Purchase Process</DialogTitle>
-                    <DialogDescription className="text-base text-muted-foreground">
-                      Follow these steps to secure your spot for {event.title}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-6 py-4">
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">1</div>
-                      <div>
-                        <h4 className="font-medium text-white mb-1">Send Payment via GCash</h4>
-                        <p className="text-sm text-muted-foreground">Send {event.price} to GCash number: <span className="text-white font-mono bg-black/30 px-2 py-0.5 ml-1">0917 123 4567</span></p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">2</div>
-                      <div>
-                        <h4 className="font-medium text-white mb-1">Save Receipt</h4>
-                        <p className="text-sm text-muted-foreground">Take a screenshot of your successful transaction.</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">3</div>
-                      <div>
-                        <h4 className="font-medium text-white mb-1">Fill Out Form</h4>
-                        <p className="text-sm text-muted-foreground">Proceed to the ticketing form to upload your proof and provide details.</p>
-                      </div>
-                    </div>
+                </a>
+              )}
 
-                    <div className="bg-primary/10 border border-primary/30 p-4 flex gap-3 text-sm text-white mt-4">
-                      <AlertCircle className="text-primary shrink-0" size={18} />
-                      <p>Tickets are strictly non-refundable. Confirmation will be sent within 24 hours.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-3 mt-4">
-                    <a href={event.ticketLink} target="_blank" rel="noopener noreferrer" className="w-full">
-                      <Button className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 uppercase tracking-wider">
-                        Proceed to Form
-                      </Button>
-                    </a>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              
+              {!hasPaddle && !event.sold_out && (
+                <div className="mt-4 bg-primary/10 border border-primary/30 p-4 flex gap-3 text-xs text-white/70">
+                  <AlertCircle className="text-primary shrink-0 mt-0.5" size={16} />
+                  <p>Book via GCash. Confirmation sent within 24 hours.</p>
+                </div>
+              )}
+
+              {hasPaddle && !event.sold_out && (
+                <p className="mt-4 text-center text-xs text-white/30">
+                  Secure checkout powered by Paddle
+                </p>
+              )}
             </div>
           </div>
         </div>

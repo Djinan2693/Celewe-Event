@@ -25,7 +25,11 @@ app.use(
     },
   }),
 );
+
 app.use(cors());
+
+app.use("/api/webhooks/paddle", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
