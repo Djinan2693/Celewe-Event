@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "wouter";
-import { Calendar, MapPin, Clock, ArrowLeft, Ticket, AlertCircle, CreditCard } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowLeft, CreditCard } from "lucide-react";
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,8 +90,6 @@ export function EventDetail() {
       setTimeout(() => setCheckoutLoading(false), 1000);
     }
   }, [event, baseUrl]);
-
-  const showGCashModal = !hasPaddle;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -203,30 +201,6 @@ export function EventDetail() {
               </ul>
             </div>
 
-            {/* How to Pay */}
-            {showGCashModal && (
-              <div>
-                <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">How to Purchase</h2>
-                <div className="space-y-5">
-                  {[
-                    { step: "1", title: "Send Payment via GCash", desc: `Send ${event.price} to GCash: 0917 123 4567` },
-                    { step: "2", title: "Screenshot Your Receipt", desc: "Take a screenshot of your successful GCash transaction." },
-                    { step: "3", title: "Submit Your Details", desc: "Fill out the ticketing form and upload proof of payment." },
-                    { step: "4", title: "Get Confirmed", desc: "Receive your digital ticket and QR code within 24 hours." },
-                  ].map(({ step, title, desc }) => (
-                    <div key={step} className="flex gap-5">
-                      <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-bold font-heading shrink-0 text-sm">
-                        {step}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white mb-1">{title}</h4>
-                        <p className="text-sm text-muted-foreground">{desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Sidebar / Ticket Box */}
@@ -262,35 +236,20 @@ export function EventDetail() {
                 </div>
               </div>
 
-              {hasPaddle ? (
-                <Button
-                  onClick={openPaddleCheckout}
-                  disabled={event.sold_out || checkoutLoading}
-                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium"
-                >
-                  <CreditCard className="mr-2" size={18} />
-                  {checkoutLoading ? "Opening checkout..." : event.sold_out ? "Sold Out" : "Buy Ticket"}
-                </Button>
-              ) : (
-                <a href={event.ticketLink} target="_blank" rel="noopener noreferrer" className="block">
-                  <Button
-                    disabled={event.sold_out}
-                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium"
-                  >
-                    <Ticket className="mr-2" size={18} />
-                    {event.sold_out ? "Sold Out" : "Buy Ticket"}
-                  </Button>
-                </a>
-              )}
+              <Button
+                onClick={hasPaddle ? openPaddleCheckout : undefined}
+                disabled={event.sold_out || checkoutLoading || !hasPaddle}
+                className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium disabled:opacity-50"
+              >
+                <CreditCard className="mr-2" size={18} />
+                {event.sold_out
+                  ? "Sold Out"
+                  : checkoutLoading
+                  ? "Opening checkout..."
+                  : "Buy Ticket"}
+              </Button>
 
-              {!hasPaddle && !event.sold_out && (
-                <div className="mt-4 bg-primary/10 border border-primary/30 p-4 flex gap-3 text-xs text-white/70">
-                  <AlertCircle className="text-primary shrink-0 mt-0.5" size={16} />
-                  <p>Book via GCash. Confirmation sent within 24 hours.</p>
-                </div>
-              )}
-
-              {hasPaddle && !event.sold_out && (
+              {!event.sold_out && (
                 <p className="mt-4 text-center text-xs text-white/30">
                   Secure checkout powered by Paddle
                 </p>
