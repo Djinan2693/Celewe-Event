@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "1809uao5SyNSzpkwYlkWW"
+uri = "file://artifacts/celewe-events/public/images/hero-bg.png"
+type = "image"
+title = "Hero background luxury VIP event"
+
+[[generated]]
+id = "gvxcaMVmdweaaz041w82A"
+uri = "file://artifacts/celewe-events/public/images/french-kiss.png"
+type = "image"
+title = "French Kiss event glamour"
+
+[[generated]]
+id = "ZwXkEGGAzOStAY_9r4SeE"
+uri = "file://artifacts/celewe-events/public/images/nuit-blanche.png"
+type = "image"
+title = "All white luxury party"
+
+[[generated]]
+id = "pxWYFHfQi7RfM7QMuAago"
+uri = "file://artifacts/celewe-events/public/images/crimson-masquerade.png"
+type = "image"
+title = "Crimson Masquerade VIP event"
+
+[[generated]]
+id = "t0QcpuPa1XooOrnjBpDG6"
+uri = "file://artifacts/celewe-events/public/images/mixology.png"
+type = "image"
+title = "Mixology cocktail pour"

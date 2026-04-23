@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Céléwé Events"
+version = "1.0.0"
+id = "artifacts/celewe-events"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18881
+
+[services.development]
+run = "pnpm --filter @workspace/celewe-events run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/celewe-events", "run", "build" ]
+publicDir = "artifacts/celewe-events/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18881"
+BASE_PATH = "/"
