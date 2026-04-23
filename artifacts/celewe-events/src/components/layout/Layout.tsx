@@ -39,6 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
             <Link href="/events" className="text-muted-foreground hover:text-white transition-colors">Events</Link>
+            <Link href="/gallery" className="text-muted-foreground hover:text-white transition-colors">Gallery</Link>
             <Link href="/about" className="text-muted-foreground hover:text-white transition-colors">About</Link>
             <Link href="/contact" className="text-muted-foreground hover:text-white transition-colors">Contact</Link>
           </nav>
@@ -66,6 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex flex-col gap-6 text-2xl font-heading mt-8">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <Link href="/events" className="hover:text-primary transition-colors">Events</Link>
+            <Link href="/gallery" className="hover:text-primary transition-colors">Gallery</Link>
             <Link href="/about" className="hover:text-primary transition-colors">About</Link>
             <Link href="/contact" className="hover:text-primary transition-colors">Contact</Link>
           </nav>
@@ -112,6 +114,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <h4 className="font-heading text-lg mb-6">Explore</h4>
               <ul className="space-y-4">
                 <li><Link href="/events" className="text-muted-foreground hover:text-primary transition-colors">Upcoming Events</Link></li>
+                <li><Link href="/gallery" className="text-muted-foreground hover:text-primary transition-colors">Gallery</Link></li>
                 <li><Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">Our Story</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact Us</Link></li>
               </ul>

@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "1809uao5SyNSzpkwYlkWW"
@@ -30,3 +29,15 @@ id = "t0QcpuPa1XooOrnjBpDG6"
 uri = "file://artifacts/celewe-events/public/images/mixology.png"
 type = "image"
 title = "Mixology cocktail pour"
+
+[[generated]]
+id = "y711lZZ8rMRgAQqLZvYHR"
+uri = "file://attached_assets/generated_images/generated_image.png"
+type = "image"
+title = "generated_image"
+
+[[outputs]]
+id = "hMoxiXwFfqqAUnOWH60k-"
+uri = "file://attached_assets/stock_images/stock_image.jpg"
+type = "image"
+title = "VIP table bottle service nightclub sparklers"
