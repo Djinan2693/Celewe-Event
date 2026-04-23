@@ -14,6 +14,7 @@ import { Terms } from "@/pages/Terms";
 import { Gallery } from "@/pages/Gallery";
 import { PaymentSuccess } from "@/pages/PaymentSuccess";
 import { ScanPage } from "@/pages/Scan";
+import { AdminPage } from "@/pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="/payment/success" component={PaymentSuccess} />
         <Route path="/scan" component={ScanPage} />
+        <Route path="/admin/tickets" component={AdminPage} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
