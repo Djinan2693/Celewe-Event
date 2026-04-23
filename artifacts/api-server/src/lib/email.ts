@@ -14,132 +14,245 @@ function getResend(): Resend | null {
   return resend;
 }
 
+export interface TicketInfo {
+  ticketCode: string;
+  qrUrl: string;
+  seatIndex: number;
+}
+
 export interface TicketEmailData {
   to: string;
   customerName: string;
   eventTitle: string;
   eventDate: string;
   eventVenue: string;
-  ticketCode: string;
-  qrUrl: string;
+  totalAmount: number;
+  currency: string;
+  tickets: TicketInfo[];
+}
+
+function formatCurrency(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
+function renderTicketBlock(ticket: TicketInfo, total: number, eventTitle: string): string {
+  const perTicketLabel = total > 1 ? `Ticket ${ticket.seatIndex} of ${total}` : "Your Ticket";
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#1a1012;border:1px solid rgba(151,12,16,0.4);margin-bottom:24px;">
+      <tr>
+        <td style="padding:28px 32px 0;">
+          <p style="margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.35);font-family:'Work Sans',Arial,sans-serif;">${perTicketLabel}</p>
+          <p style="margin:0;font-family:'Lexend',Arial,sans-serif;font-size:22px;font-weight:600;color:#ffffff;">${eventTitle}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:20px 32px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.4);font-family:'Work Sans',Arial,sans-serif;">Ticket Code</span>
+              </td>
+              <td align="right" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                <span style="font-family:'Lexend',Arial,sans-serif;font-size:18px;font-weight:600;color:#970C10;letter-spacing:0.12em;">${ticket.ticketCode}</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:28px 32px 32px;">
+          <p style="margin:0 0 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.35);font-family:'Work Sans',Arial,sans-serif;">Scan at entrance</p>
+          <img
+            src="${ticket.qrUrl}"
+            width="300"
+            height="300"
+            alt="QR Code ${ticket.ticketCode}"
+            style="display:block;margin:0 auto;border:1px solid rgba(151,12,16,0.35);padding:12px;background:#1a1012;"
+          />
+        </td>
+      </tr>
+    </table>`;
 }
 
 function buildTicketEmailHtml(data: TicketEmailData): string {
+  const amountFormatted = formatCurrency(data.totalAmount, data.currency);
+  const ticketBlocks = data.tickets
+    .map((t) => renderTicketBlock(t, data.tickets.length, data.eventTitle))
+    .join("");
+
+  const ticketLabel = data.tickets.length === 1 ? "ticket is" : "tickets are";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your Ticket — ${data.eventTitle}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600&family=Work+Sans:wght@300;400;500&display=swap');
-    body { margin: 0; padding: 0; background: #1a1012; font-family: 'Work Sans', sans-serif; color: #ffffff; }
-    .wrapper { max-width: 600px; margin: 0 auto; background: #2D2021; }
-    .header { background: #1a1012; padding: 40px 40px 32px; text-align: center; border-bottom: 1px solid rgba(151,12,16,0.3); }
-    .logo { font-family: 'Lexend', sans-serif; font-size: 22px; font-weight: 600; color: #ffffff; letter-spacing: 0.15em; text-transform: uppercase; }
-    .logo span { color: #970C10; }
-    .body { padding: 48px 40px; }
-    .greeting { font-family: 'Lexend', sans-serif; font-size: 28px; font-weight: 300; color: #ffffff; margin-bottom: 12px; line-height: 1.3; }
-    .sub { color: rgba(255,255,255,0.6); font-size: 15px; line-height: 1.7; margin-bottom: 40px; }
-    .ticket { background: #1a1012; border: 1px solid rgba(151,12,16,0.4); padding: 32px; margin: 0 0 40px; }
-    .event-name { font-family: 'Lexend', sans-serif; font-size: 24px; font-weight: 600; color: #ffffff; margin-bottom: 20px; }
-    .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .detail-label { color: rgba(255,255,255,0.45); font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; }
-    .detail-value { color: rgba(255,255,255,0.9); font-size: 14px; text-align: right; }
-    .ticket-code-block { text-align: center; padding: 24px 0 8px; }
-    .ticket-code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(255,255,255,0.35); margin-bottom: 10px; }
-    .ticket-code { font-family: 'Lexend', sans-serif; font-size: 28px; font-weight: 600; color: #970C10; letter-spacing: 0.12em; }
-    .qr-block { text-align: center; padding: 24px 0; }
-    .qr-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(255,255,255,0.4); margin-bottom: 16px; }
-    .qr-img { border: 1px solid rgba(151,12,16,0.3); padding: 12px; background: #1a1012; }
-    .note { background: rgba(151,12,16,0.1); border-left: 3px solid #970C10; padding: 16px 20px; color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6; margin-bottom: 40px; }
-    .footer { background: #1a1012; padding: 28px 40px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); }
-    .footer-text { color: rgba(255,255,255,0.25); font-size: 12px; line-height: 1.8; }
-    .footer-brand { font-family: 'Lexend', sans-serif; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4); letter-spacing: 0.15em; margin-bottom: 8px; }
-    .divider { border: none; border-top: 1px solid rgba(151,12,16,0.25); margin: 32px 0; }
-  </style>
+  <title>Your Ticket${data.tickets.length > 1 ? "s" : ""} — ${data.eventTitle}</title>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="header">
-      <div class="logo">CÉLÉWÉ <span>EVENTS</span></div>
-    </div>
+<body style="margin:0;padding:0;background:#1a1012;font-family:'Work Sans',Arial,sans-serif;color:#ffffff;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#1a1012;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
 
-    <div class="body">
-      <h1 class="greeting">Your ticket is confirmed,<br>${data.customerName}.</h1>
-      <p class="sub">
-        Payment received and verified. Your exclusive access to <strong style="color:#fff">${data.eventTitle}</strong> is secured.<br>
-        Present this QR code at the entrance for seamless check-in.
-      </p>
+        <!-- Wrapper -->
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#2D2021;">
 
-      <div class="ticket">
-        <div class="event-name">${data.eventTitle}</div>
+          <!-- Header -->
+          <tr>
+            <td style="background:#1a1012;padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(151,12,16,0.3);">
+              <p style="margin:0;font-family:'Lexend',Arial,sans-serif;font-size:20px;font-weight:600;color:#ffffff;letter-spacing:0.18em;text-transform:uppercase;">
+                CÉLÉWÉ <span style="color:#970C10;">EVENTS</span>
+              </p>
+            </td>
+          </tr>
 
-        <div class="detail-row">
-          <span class="detail-label">Date</span>
-          <span class="detail-value">${data.eventDate}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Venue</span>
-          <span class="detail-value">${data.eventVenue}</span>
-        </div>
-        <div class="detail-row" style="border:none">
-          <span class="detail-label">Guest</span>
-          <span class="detail-value">${data.customerName}</span>
-        </div>
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:44px 40px 0;">
+              <h1 style="margin:0 0 14px;font-family:'Lexend',Arial,sans-serif;font-size:26px;font-weight:300;color:#ffffff;line-height:1.35;">
+                Your ${ticketLabel} confirmed,<br />${data.customerName}.
+              </h1>
+              <p style="margin:0 0 36px;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.7;">
+                Payment received and verified. Your exclusive access to
+                <strong style="color:#ffffff;">${data.eventTitle}</strong> is secured.
+                Present the QR code${data.tickets.length > 1 ? "s" : ""} at the entrance for seamless check-in.
+              </p>
+            </td>
+          </tr>
 
-        <hr class="divider" />
+          <!-- Event Summary -->
+          <tr>
+            <td style="padding:0 40px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(255,255,255,0.07);">
+                <tr>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.4);">Date</span>
+                  </td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:14px;color:rgba(255,255,255,0.9);">${data.eventDate}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.4);">Venue</span>
+                  </td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:14px;color:rgba(255,255,255,0.9);">${data.eventVenue}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.4);">Tickets</span>
+                  </td>
+                  <td align="right" style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <span style="font-size:14px;color:rgba(255,255,255,0.9);">${data.tickets.length}x</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 0;">
+                    <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.4);">Total Paid</span>
+                  </td>
+                  <td align="right" style="padding:12px 0;">
+                    <span style="font-family:'Lexend',Arial,sans-serif;font-size:16px;font-weight:600;color:#970C10;">${amountFormatted}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-        <div class="ticket-code-block">
-          <div class="ticket-code-label">Ticket Code</div>
-          <div class="ticket-code">${data.ticketCode}</div>
-        </div>
+          <!-- Section label -->
+          <tr>
+            <td style="padding:0 40px 20px;">
+              <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.3);">
+                — Your ticket${data.tickets.length > 1 ? "s are" : " is"} attached below —
+              </p>
+            </td>
+          </tr>
 
-        <div class="qr-block">
-          <div class="qr-label">Scan at entrance</div>
-          <img class="qr-img" src="${data.qrUrl}" width="200" height="200" alt="QR Code ${data.ticketCode}" />
-        </div>
-      </div>
+          <!-- Ticket blocks -->
+          <tr>
+            <td style="padding:0 40px 32px;">
+              ${ticketBlocks}
+            </td>
+          </tr>
 
-      <div class="note">
-        This ticket is strictly non-transferable and non-refundable. Present the QR code or your ticket code at the entrance. Doors open 30 minutes before the event starts.
-      </div>
-    </div>
+          <!-- Notice -->
+          <tr>
+            <td style="padding:0 40px 44px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(151,12,16,0.1);border-left:3px solid #970C10;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0;color:rgba(255,255,255,0.65);font-size:13px;line-height:1.65;">
+                      Ticket${data.tickets.length > 1 ? "s are" : " is"} strictly non-transferable and non-refundable.
+                      Present the QR code${data.tickets.length > 1 ? "s" : ""} or ticket code${data.tickets.length > 1 ? "s" : ""} at the entrance.
+                      Doors open 30 minutes before the event.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    <div class="footer">
-      <div class="footer-brand">CÉLÉWÉ EVENTS</div>
-      <div class="footer-text">
-        Manila's Premier VIP Experience Agency<br>
-        celeweevent.com &nbsp;·&nbsp; Crafting Moments that Matter
-      </div>
-    </div>
-  </div>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#1a1012;padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.07);">
+              <p style="margin:0 0 6px;font-family:'Lexend',Arial,sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.15em;">CÉLÉWÉ EVENTS</p>
+              <p style="margin:0;color:rgba(255,255,255,0.2);font-size:12px;line-height:1.8;">
+                Manila's Premier VIP Experience Agency<br />
+                <a href="https://celeweevent.com" style="color:rgba(151,12,16,0.7);text-decoration:none;">celeweevent.com</a>
+                &nbsp;·&nbsp; Crafting Moments that Matter
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Wrapper -->
+
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
 
 export async function sendTicketEmail(data: TicketEmailData): Promise<boolean> {
   const client = getResend();
-  if (!client) return false;
+  if (!client) {
+    logger.warn({ to: data.to }, "Email skipped — RESEND_API_KEY not configured");
+    return false;
+  }
 
   try {
     const fromEmail = process.env.RESEND_FROM_EMAIL ?? "tickets@celeweevent.com";
+    const ticketPlural = data.tickets.length > 1 ? "Tickets" : "Ticket";
     const { error } = await client.emails.send({
       from: `Céléwé Events <${fromEmail}>`,
       to: [data.to],
-      subject: `Your Ticket — ${data.eventTitle} | Céléwé Events`,
+      subject: `Your ${ticketPlural} — ${data.eventTitle} | Céléwé Events`,
       html: buildTicketEmailHtml(data),
     });
 
     if (error) {
-      logger.error({ error }, "Failed to send ticket email");
+      logger.error({ error }, "Failed to send ticket email via Resend");
       return false;
     }
 
-    logger.info({ to: data.to, ticketCode: data.ticketCode }, "Ticket email sent");
+    logger.info(
+      { to: data.to, ticketCount: data.tickets.length },
+      "Ticket email sent successfully",
+    );
     return true;
   } catch (err) {
-    logger.error({ err }, "Error sending ticket email");
+    logger.error({ err }, "Unexpected error sending ticket email");
     return false;
   }
 }

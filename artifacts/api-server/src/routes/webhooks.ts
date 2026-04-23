@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
-import { ordersTable, ticketsTable } from "@workspace/db";
-import { verifyPaddleWebhook, generateId, generateTicketCode, generateQrUrl } from "../lib/paddle";
+import { verifyPaddleWebhook } from "../lib/paddle";
+import { createOrderWithTickets } from "../lib/tickets";
 import { sendTicketEmail } from "../lib/email";
 import { logger } from "../lib/logger";
 
@@ -47,54 +46,61 @@ router.post("/webhooks/paddle", async (req, res): Promise<void> => {
   if (eventType === "transaction.completed") {
     const data = event.data as Record<string, unknown>;
     const transactionId = data.id as string;
+
     const customData = (data.custom_data as Record<string, unknown>) ?? {};
-    const customerEmail = ((data.customer as Record<string, unknown>)?.email as string) ?? "";
-    const customerName = ((data.customer as Record<string, unknown>)?.name as string) ?? "Guest";
-    const eventId = customData.eventId as string ?? "unknown";
-    const eventTitle = customData.eventTitle as string ?? "Céléwé Event";
-    const eventDate = customData.eventDate as string ?? "";
-    const eventVenue = customData.eventVenue as string ?? "";
+    const customer = (data.customer as Record<string, unknown>) ?? {};
+    const customerEmail = (customer.email as string) ?? "";
+    const customerName = (customer.name as string) ?? "Guest";
+
+    const eventId = (customData.eventId as string) ?? "unknown";
+    const eventTitle = (customData.eventTitle as string) ?? "Céléwé Event";
+    const eventDate = (customData.eventDate as string) ?? "";
+    const eventVenue = (customData.eventVenue as string) ?? "";
 
     const items = (data.items as Record<string, unknown>[]) ?? [];
-    const unitPrice = items[0]
-      ? ((items[0].price as Record<string, unknown>)?.unit_price as Record<string, unknown>)?.amount as number ?? 0
-      : 0;
-    const currency = items[0]
-      ? ((items[0].price as Record<string, unknown>)?.unit_price as Record<string, unknown>)?.currency_code as string ?? "PHP"
-      : "PHP";
 
-    const orderId = generateId();
-    const ticketId = generateId();
-    const ticketCode = generateTicketCode();
+    let totalQty = 0;
+    let unitAmount = 0;
+    let currency = "PHP";
+
+    for (const item of items) {
+      const qty = (item.quantity as number) ?? 1;
+      totalQty += qty;
+
+      const price = item.price as Record<string, unknown> | undefined;
+      const unitPrice = price?.unit_price as Record<string, unknown> | undefined;
+      if (unitPrice) {
+        const rawAmount = unitPrice.amount as number | string | undefined;
+        unitAmount = typeof rawAmount === "string" ? parseInt(rawAmount, 10) : (rawAmount ?? 0);
+        currency = (unitPrice.currency_code as string) ?? "PHP";
+      }
+    }
+
+    if (totalQty === 0) totalQty = 1;
+
     const baseUrl = process.env.SITE_URL ?? "https://celeweevent.com";
-    const qrUrl = generateQrUrl(ticketCode, baseUrl);
 
     try {
-      const [order] = await db.insert(ordersTable).values({
-        id: orderId,
-        eventId,
-        eventTitle,
-        customerName,
-        customerEmail,
-        amount: unitPrice,
-        currency,
-        paddleTransactionId: transactionId,
-        status: "paid",
-      }).returning();
+      const { order, tickets } = await createOrderWithTickets(
+        {
+          eventId,
+          eventTitle,
+          eventDate,
+          eventVenue,
+          customerName,
+          customerEmail,
+          unitAmount,
+          currency,
+          paddleTransactionId: transactionId,
+          quantity: totalQty,
+        },
+        baseUrl,
+      );
 
-      await db.insert(ticketsTable).values({
-        id: ticketId,
-        orderId: order.id,
-        ticketCode,
-        qrUrl,
-        holderName: customerName,
-        holderEmail: customerEmail,
-        eventId,
-        eventTitle,
-        status: "VALID",
-      });
-
-      req.log.info({ orderId, ticketCode }, "Order and ticket created");
+      req.log.info(
+        { orderId: order.id, ticketCount: tickets.length },
+        "Order and tickets created",
+      );
 
       await sendTicketEmail({
         to: customerEmail,
@@ -102,12 +108,16 @@ router.post("/webhooks/paddle", async (req, res): Promise<void> => {
         eventTitle,
         eventDate,
         eventVenue,
-        ticketCode,
-        qrUrl,
+        totalAmount: order.amount,
+        currency,
+        tickets: tickets.map((t, i) => ({
+          ticketCode: t.ticketCode,
+          qrUrl: t.qrUrl,
+          seatIndex: i + 1,
+        })),
       });
-
     } catch (err) {
-      req.log.error({ err }, "Failed to create order or ticket");
+      req.log.error({ err }, "Failed to create order/tickets or send email");
       res.status(500).json({ error: "Internal error" });
       return;
     }
