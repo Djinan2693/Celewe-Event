@@ -6,6 +6,7 @@ import { EventCard } from "@/components/ui/EventCard";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { Testimonial } from "@/components/ui/Testimonial";
 import { events } from "@/lib/data";
+import { SEO } from "@/components/SEO";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -27,13 +28,22 @@ export function Home() {
 
   return (
     <div className="flex flex-col">
+      <SEO
+        title="Manila's Elite Nightlife & VIP Events"
+        description="Céléwé Events — Manila's premier VIP nightlife agency. Exclusive events, private soirées, and unforgettable moments curated for the discerning few."
+        canonicalPath="/"
+      />
       {/* Hero Section */}
       <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/images/hero-bg.png" 
-            alt="VIP Nightlife Experience" 
+          <img
+            src="/images/hero-bg.png"
+            alt="VIP Nightlife Experience"
             className="w-full h-full object-cover opacity-60"
+            fetchPriority="high"
+            decoding="async"
+            width={1920}
+            height={1080}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
         </div>
@@ -114,10 +124,14 @@ export function Home() {
               className="relative"
             >
               <div className="aspect-[4/5] relative bg-card border border-border/50 overflow-hidden">
-                <img 
-                  src="/images/mixology.png" 
-                  alt="Premium Mixology" 
+                <img
+                  src="/images/mixology.png"
+                  alt="Premium Mixology"
                   className="w-full h-full object-cover opacity-80 mix-blend-luminosity"
+                  loading="lazy"
+                  decoding="async"
+                  width={800}
+                  height={1000}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 <div className="absolute bottom-10 left-10 right-10">

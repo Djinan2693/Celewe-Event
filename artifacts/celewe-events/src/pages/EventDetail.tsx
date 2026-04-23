@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock, ArrowLeft, Ticket, AlertCircle, CreditCard } f
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SEO } from "@/components/SEO";
 
 declare global {
   interface Window {
@@ -92,8 +93,54 @@ export function EventDetail() {
 
   const showGCashModal = !hasPaddle;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": event.title,
+    "description": event.description,
+    "startDate": event.startDateISO,
+    "endDate": event.endDateISO,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "image": `https://celeweevent.com${event.image}`,
+    "url": `https://celeweevent.com/events/${event.slug}`,
+    "location": {
+      "@type": "Place",
+      "name": event.venueName,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": event.venueAddress,
+        "addressLocality": "Metro Manila",
+        "addressCountry": "PH"
+      }
+    },
+    "organizer": {
+      "@type": "Organization",
+      "name": "Céléwé Events",
+      "url": "https://celeweevent.com"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": String(event.priceAmount),
+      "priceCurrency": event.currency,
+      "availability": event.sold_out
+        ? "https://schema.org/SoldOut"
+        : "https://schema.org/InStock",
+      "url": `https://celeweevent.com/events/${event.slug}`,
+      "validFrom": event.startDateISO
+    }
+  };
+
   return (
     <div className="flex flex-col pb-24">
+      <SEO
+        title={event.title}
+        description={`${event.description} — ${event.date} at ${event.venue}.`}
+        ogImage={`https://celeweevent.com${event.image}`}
+        ogType="article"
+        canonicalPath={`/events/${event.slug}`}
+        jsonLd={jsonLd}
+      />
       {/* Hero Image */}
       <div className="relative h-[50vh] min-h-[400px] w-full">
         <div className="absolute inset-0 z-0">
@@ -101,6 +148,10 @@ export function EventDetail() {
             src={event.image || "/images/hero-bg.png"}
             alt={event.title}
             className="w-full h-full object-cover"
+            fetchPriority="high"
+            decoding="async"
+            width={1200}
+            height={600}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         </div>

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { EventCard } from "@/components/ui/EventCard";
 import { SectionTitle } from "@/components/ui/SectionTitle";
 import { events } from "@/lib/data";
+import { SEO } from "@/components/SEO";
 
 export function Events() {
   const [filter, setFilter] = useState<string | null>(null);
@@ -15,6 +16,11 @@ export function Events() {
 
   return (
     <div className="flex flex-col pb-24">
+      <SEO
+        title="Upcoming Events"
+        description="Secure your place at Manila's most exclusive gatherings. Carefully curated, flawlessly executed VIP events by Céléwé Events."
+        canonicalPath="/events"
+      />
       {/* Header */}
       <section className="pt-32 pb-16 md:pt-40 md:pb-24 bg-card/30 border-b border-border/30">
         <div className="container max-w-[1200px] mx-auto px-4 md:px-6">

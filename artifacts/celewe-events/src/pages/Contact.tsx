@@ -1,4 +1,5 @@
 import React from "react";
+import { SEO } from "@/components/SEO";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +50,11 @@ export function Contact() {
 
   return (
     <div className="flex flex-col pb-24">
+      <SEO
+        title="Contact"
+        description="For VIP table reservations, private event curation, or general inquiries — reach out to Céléwé Events. Manila's premier nightlife agency."
+        canonicalPath="/contact"
+      />
       {/* Header */}
       <section className="pt-32 pb-16 md:pt-40 md:pb-24 bg-background relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/images/mixology.png')] bg-cover bg-center opacity-10 mix-blend-screen pointer-events-none" />

@@ -1,15 +1,17 @@
-import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { GalleryGrid } from "@/components/ui/GalleryGrid";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SEO } from "@/components/SEO";
 
 export function Gallery() {
-  useEffect(() => {
-    document.title = "Gallery — Céléwé Events | VIP Nightlife Manila";
-  }, []);
-
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Gallery"
+        description="A visual archive of Manila's most exclusive evenings — Céléwé Events captured in light, atmosphere, and unforgettable detail."
+        canonicalPath="/gallery"
+      />
+
       {/* Hero Header */}
       <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">

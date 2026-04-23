@@ -1,10 +1,16 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { SectionTitle } from "@/components/ui/SectionTitle";
+import { SEO } from "@/components/SEO";
 
 export function About() {
   return (
     <div className="flex flex-col">
+      <SEO
+        title="Our Story"
+        description="Céléwé Events was born from a desire to redefine Manila's nightlife — a premier experience agency specializing in high-end VIP events, private soirées, and unforgettable moments."
+        canonicalPath="/about"
+      />
       {/* Hero */}
       <section className="pt-32 pb-16 md:pt-40 md:pb-24 bg-background border-b border-border/30 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[100px] rounded-full pointer-events-none" />

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /admin/tickets
+Disallow: /api/
+Disallow: /scan
+Disallow: /payment/success
+
+Sitemap: https://celeweevent.com/sitemap.xml
