@@ -53,7 +53,7 @@ export function AdminPage() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    document.title = "Staff Dashboard — Céléwé Events";
+    document.title = "Staff Dashboard — Cèlewé Events";
   }, []);
 
   useEffect(() => {

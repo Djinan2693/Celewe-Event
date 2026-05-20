@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Céléwé Events"
+title = "Cèlewé Events"
 version = "1.0.0"
 id = "artifacts/celewe-events"
 router = "path"

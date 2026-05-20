@@ -1,10 +1,11 @@
 import { Helmet } from "react-helmet-async";
+import { IMG_SEO_OG_DEFAULT } from "@/assets/images";
 
 const SITE_URL = "https://celeweevent.com";
-const SITE_NAME = "Céléwé Events";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/images/og-default.jpg`;
+const SITE_NAME = "Cèlewé Events";
+const DEFAULT_OG_IMAGE = IMG_SEO_OG_DEFAULT;
 const DEFAULT_DESCRIPTION =
-  "Céléwé Events is Manila's premier VIP nightlife and experience agency — curating exclusive events, private soirées, and unforgettable moments for the discerning few.";
+  "Cèlewé Events is Manila's premier VIP nightlife and experience agency — curating exclusive events, private soirées, and unforgettable moments for the discerning few.";
 
 interface SEOProps {
   title?: string;

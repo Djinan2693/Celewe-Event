@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "wouter";
-import { Calendar, MapPin, Clock, ArrowLeft, CreditCard } from "lucide-react";
+import { Calendar, MapPin, Clock, ArrowLeft, CreditCard, Smartphone, Zap, QrCode } from "lucide-react";
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/SEO";
+import { IMG_EVENT_FRENCH_KISS } from "@/assets/images";
+import { GalleryGrid } from "@/components/GalleryGrid";
+import { frenchKissGallery } from "@/data/frenchKissGallery";
 
 declare global {
   interface Window {
@@ -100,7 +103,7 @@ export function EventDetail() {
     "endDate": event.endDateISO,
     "eventStatus": "https://schema.org/EventScheduled",
     "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-    "image": `https://celeweevent.com${event.image}`,
+    "image": event.image,
     "url": `https://celeweevent.com/events/${event.slug}`,
     "location": {
       "@type": "Place",
@@ -114,7 +117,7 @@ export function EventDetail() {
     },
     "organizer": {
       "@type": "Organization",
-      "name": "Céléwé Events",
+      "name": "Cèlewé Events",
       "url": "https://celeweevent.com"
     },
     "offers": {
@@ -134,7 +137,7 @@ export function EventDetail() {
       <SEO
         title={event.title}
         description={`${event.description} — ${event.date} at ${event.venue}.`}
-        ogImage={`https://celeweevent.com${event.image}`}
+        ogImage={event.image}
         ogType="article"
         canonicalPath={`/events/${event.slug}`}
         jsonLd={jsonLd}
@@ -143,7 +146,7 @@ export function EventDetail() {
       <div className="relative h-[50vh] min-h-[400px] w-full">
         <div className="absolute inset-0 z-0">
           <img
-            src={event.image || "/images/hero-bg.png"}
+            src={event.image || IMG_EVENT_FRENCH_KISS}
             alt={event.title}
             className="w-full h-full object-cover"
             fetchPriority="high"
@@ -184,7 +187,7 @@ export function EventDetail() {
               <div className="prose prose-invert max-w-none">
                 <p className="text-lg text-foreground/90 leading-relaxed">{event.description}</p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  Prepare for a night where reality blurs and pure magic takes over. Céléwé Events strictly curates the guest list to ensure a cohesive, premium vibe throughout the night. Immersive decor, top-tier entertainment, and a crowd that understands the assignment.
+                  Prepare for a night where reality blurs and pure magic takes over. Cèlewé Events strictly curates the guest list to ensure a cohesive, premium vibe throughout the night. Immersive decor, top-tier entertainment, and a crowd that understands the assignment.
                 </p>
               </div>
             </div>
@@ -192,24 +195,41 @@ export function EventDetail() {
             <div>
               <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">What to Expect</h2>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 text-muted-foreground">
-                {["Premium venue setting and atmospheric design", "Exclusive performances and live sets", "High-end mixology and bottle service", "Professional photography coverage"].map((item) => (
+                {event.included.map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
                     <span>{item}</span>
                   </li>
                 ))}
               </ul>
+              <p className="text-sm text-muted-foreground mt-4">
+                Ticket delivery: After payment, your QR e-ticket is sent to your email and can be scanned at venue entry.
+              </p>
             </div>
+
+            {event.slug === "french-kiss-night" && (
+              <div>
+                <h2 className="text-2xl font-heading mb-6 border-b border-border/50 pb-4">French Kiss Gallery</h2>
+                <GalleryGrid items={frenchKissGallery} />
+              </div>
+            )}
 
           </div>
 
           {/* Sidebar / Ticket Box */}
           <div className="lg:col-span-1">
             <div className="sticky top-24 bg-card border border-border/50 p-6 md:p-8 shadow-2xl">
-              <div className="mb-8">
+
+              {/* Digital ticket badge */}
+              <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 px-4 py-2.5 mb-6">
+                <Smartphone size={15} className="text-primary shrink-0" />
+                <span className="text-primary text-xs font-semibold uppercase tracking-wider">100% Digital Ticket</span>
+                <Zap size={13} className="text-primary shrink-0 ml-auto" />
+              </div>
+
+              <div className="mb-6">
                 <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Price per person</div>
                 <div className="text-4xl font-heading text-primary">{event.price}</div>
-                <div className="text-xs text-muted-foreground mt-2">Includes entrance and welcome drink.</div>
               </div>
 
               <div className="space-y-5 mb-8">
@@ -246,13 +266,24 @@ export function EventDetail() {
                   ? "Sold Out"
                   : checkoutLoading
                   ? "Opening checkout..."
-                  : "Buy Ticket"}
+                  : "Pay & Get Ticket Instantly"}
               </Button>
 
               {!event.sold_out && (
-                <p className="mt-4 text-center text-xs text-white/30">
-                  Secure checkout powered by Paddle
-                </p>
+                <div className="mt-4 space-y-2 pt-4 border-t border-border/30">
+                  <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <CreditCard size={11} />
+                    <span>Secure payment via Paddle</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <QrCode size={11} />
+                    <span>QR ticket sent to your email instantly</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/40 text-xs">
+                    <Smartphone size={11} />
+                    <span>Show QR at entrance — no print needed</span>
+                  </div>
+                </div>
               )}
             </div>
           </div>

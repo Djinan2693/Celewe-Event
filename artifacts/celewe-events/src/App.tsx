@@ -15,9 +15,13 @@ const About       = lazy(() => import("@/pages/About").then(m => ({ default: m.A
 const Contact     = lazy(() => import("@/pages/Contact").then(m => ({ default: m.Contact })));
 const Privacy     = lazy(() => import("@/pages/Privacy").then(m => ({ default: m.Privacy })));
 const Terms       = lazy(() => import("@/pages/Terms").then(m => ({ default: m.Terms })));
+const Pricing     = lazy(() => import("@/pages/Pricing").then(m => ({ default: m.Pricing })));
+const RefundPolicy = lazy(() => import("@/pages/RefundPolicy").then(m => ({ default: m.RefundPolicy })));
+const ProductFrenchKissNight = lazy(() => import("@/pages/ProductFrenchKissNight").then(m => ({ default: m.ProductFrenchKissNight })));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess").then(m => ({ default: m.PaymentSuccess })));
 const ScanPage    = lazy(() => import("@/pages/Scan").then(m => ({ default: m.ScanPage })));
 const AdminPage   = lazy(() => import("@/pages/Admin").then(m => ({ default: m.AdminPage })));
+const CookiePolicy = lazy(() => import("@/pages/CookiePolicy").then(m => ({ default: m.CookiePolicy })));
 const ServerError = lazy(() => import("@/pages/ServerError").then(m => ({ default: m.ServerError })));
 
 function PageLoader() {
@@ -41,11 +45,15 @@ function Router() {
           <Route path="/gallery"         component={Gallery} />
           <Route path="/about"           component={About} />
           <Route path="/contact"         component={Contact} />
+          <Route path="/pricing"         component={Pricing} />
           <Route path="/payment/success" component={PaymentSuccess} />
           <Route path="/scan"            component={ScanPage} />
           <Route path="/admin/tickets"   component={AdminPage} />
           <Route path="/privacy"         component={Privacy} />
           <Route path="/terms"           component={Terms} />
+          <Route path="/refund-policy"   component={RefundPolicy} />
+          <Route path="/cookie-policy"   component={CookiePolicy} />
+          <Route path="/product/french-kiss-night" component={ProductFrenchKissNight} />
           <Route path="/500"             component={ServerError} />
           <Route                         component={NotFound} />
         </Switch>

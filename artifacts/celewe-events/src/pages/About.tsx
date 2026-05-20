@@ -97,15 +97,15 @@ export function About() {
       <section className="py-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 h-[60vh] min-h-[500px]">
           <div className="bg-card border-r border-border/50 relative overflow-hidden group">
-            <img src="/images/french-kiss.png" alt="Atmosphere" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
+            <img src="/images/about%20us%201.jpg" alt="Atmosphere" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
           </div>
           <div className="bg-card border-r border-border/50 relative overflow-hidden group hidden md:block">
-            <img src="/images/crimson-masquerade.png" alt="People" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
+            <img src="/images/about%20us%204.jpg" alt="People" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
           </div>
           <div className="bg-card relative overflow-hidden group hidden lg:block">
-            <img src="/images/nuit-blanche.png" alt="Details" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
+            <img src="/images/about%20us%205.jpg" alt="Details" className="w-full h-full object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
           </div>
         </div>

@@ -10,7 +10,7 @@ export function PaymentSuccess() {
   const [count, setCount] = useState(5);
 
   useEffect(() => {
-    document.title = "Payment Confirmed — Céléwé Events";
+    document.title = "Payment Confirmed — Cèlewé Events";
   }, []);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export function PaymentSuccess() {
           className="mt-16 pt-8 border-t border-white/10"
         >
           <p className="text-white/20 text-xs tracking-widest uppercase">
-            Crafting Moments that Matter — Céléwé Events
+            Crafting Moments that Matter — Cèlewé Events
           </p>
         </motion.div>
       </div>

@@ -47,7 +47,7 @@ export function ScanPage() {
   const shakeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    document.title = "Entrance Scanner — Céléwé Events";
+    document.title = "Entrance Scanner — Cèlewé Events";
   }, []);
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export function ScanPage() {
             <ScanLine size={13} />
             Entrance Scanner
           </div>
-          <h1 className="font-heading text-2xl text-white">Céléwé Events</h1>
+          <h1 className="font-heading text-2xl text-white">Cèlewé Events</h1>
         </div>
 
         <AnimatePresence mode="wait">

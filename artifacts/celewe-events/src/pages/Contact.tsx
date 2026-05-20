@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { IMG_CONTACT_HEADER } from "@/assets/images";
 import {
   Form,
   FormControl,
@@ -27,6 +28,7 @@ const formSchema = z.object({
 
 export function Contact() {
   const { toast } = useToast();
+  const web3FormsAccessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY as string | undefined;
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,26 +40,75 @@ export function Contact() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Mock submission
-    toast({
-      title: "Message Sent",
-      description: "We've received your inquiry and will get back to you shortly.",
-      className: "bg-primary text-white border-none rounded-none",
-    });
-    form.reset();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!web3FormsAccessKey) {
+      toast({
+        title: "Configuration Required",
+        description: "Web3Forms key is missing. Set VITE_WEB3FORMS_ACCESS_KEY to enable contact form delivery.",
+        className: "bg-primary text-white border-none rounded-none",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: web3FormsAccessKey,
+          from_name: "Cèlewé Events Contact Form",
+          subject: "New contact inquiry from celeweevent.com",
+          website: "https://celeweevent.com",
+          name: values.name,
+          email: values.email,
+          phone: values.phone || "Not provided",
+          message: values.message,
+          replyto: values.email,
+          botcheck: "",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to send message");
+      }
+
+      toast({
+        title: "Message Sent",
+        description: "Your message was sent successfully to contact@celeweevent.com.",
+        className: "bg-primary text-white border-none rounded-none",
+      });
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "Message Failed",
+        description: "Unable to send your message right now. Please email us directly at contact@celeweevent.com.",
+        className: "bg-primary text-white border-none rounded-none",
+      });
+      console.error("Contact form submission failed", error);
+    }
   }
 
   return (
     <div className="flex flex-col pb-24">
       <SEO
         title="Contact"
-        description="For VIP table reservations, private event curation, or general inquiries — reach out to Céléwé Events. Manila's premier nightlife agency."
+        description="For VIP table reservations, private event curation, or general inquiries — reach out to Cèlewé Events. Manila's premier nightlife agency."
         canonicalPath="/contact"
       />
       {/* Header */}
       <section className="pt-32 pb-16 md:pt-40 md:pb-24 bg-background relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('/images/mixology.png')] bg-cover bg-center opacity-10 mix-blend-screen pointer-events-none" />
+        <img
+          src={IMG_CONTACT_HEADER}
+          alt="Cèlewé event ambience"
+          className="absolute top-0 left-0 w-full h-full max-w-full object-cover opacity-10 mix-blend-screen pointer-events-none"
+          loading="lazy"
+          decoding="async"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background pointer-events-none" />
         
         <div className="container max-w-[1200px] mx-auto px-4 md:px-6 relative z-10">
@@ -87,7 +138,7 @@ export function Contact() {
                     </div>
                     <div>
                       <p className="text-sm uppercase tracking-wider mb-1">Email</p>
-                      <p className="text-white font-medium">vip@celeweevent.com</p>
+                      <p className="text-white font-medium">contact@celeweevent.com</p>
                     </div>
                   </div>
                   
@@ -97,7 +148,7 @@ export function Contact() {
                     </div>
                     <div>
                       <p className="text-sm uppercase tracking-wider mb-1">Phone</p>
-                      <p className="text-white font-medium">+63 917 123 4567</p>
+                      <p className="text-white font-medium">+63 977 322 57 39</p>
                     </div>
                   </div>
                   
@@ -189,8 +240,9 @@ export function Contact() {
                     )}
                   />
                   
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 uppercase tracking-wider mt-4">
-                    <Send className="mr-2 h-4 w-4" /> Send Message
+                  <Button type="submit" disabled={form.formState.isSubmitting} className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 uppercase tracking-wider mt-4 disabled:opacity-60">
+                    <Send className="mr-2 h-4 w-4" />
+                    {form.formState.isSubmitting ? "Sending..." : "Send Message"}
                   </Button>
                 </form>
               </Form>

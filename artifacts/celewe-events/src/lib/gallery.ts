@@ -1,3 +1,5 @@
+import { frenchKissGallery } from "@/data/frenchKissGallery";
+
 export type GalleryCategory = "All" | "Nightlife" | "Private Party" | "Corporate" | "Wedding" | "VIP Table";
 
 export interface GalleryItem {
@@ -11,9 +13,18 @@ export interface GalleryItem {
 }
 
 export const galleryItems: GalleryItem[] = [
+  ...frenchKissGallery.map((item, index) => ({
+    id: `fk-${index + 1}`,
+    src: item.src,
+    alt: item.alt,
+    category: "Nightlife" as const,
+    title: `French Kiss Night ${index + 1}`,
+    event: "French Kiss Night",
+    span: "normal" as const,
+  })),
   {
     id: "g1",
-    src: "https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=1200&q=80",
+    src: "/images/french-kiss/1.jpg",
     alt: "VIP nightclub dance floor with dramatic lighting",
     category: "Nightlife",
     title: "Electric Atmosphere",
@@ -22,7 +33,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g2",
-    src: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
+    src: "/images/french-kiss/2.jpg",
     alt: "Premium cocktail bar with glowing bottles",
     category: "Nightlife",
     title: "Premium Mixology",
@@ -31,7 +42,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g3",
-    src: "https://images.unsplash.com/photo-1551522435-a13afa10f103?w=800&q=80",
+    src: "/images/french-kiss/3.jpg",
     alt: "Luxurious private party table setting with candles",
     category: "Private Party",
     title: "Intimate Elegance",
@@ -40,7 +51,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g4",
-    src: "https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80",
+    src: "/images/french-kiss/4.jpg",
     alt: "Elegant rooftop private party with city lights",
     category: "Private Party",
     title: "Skyline Soirée",
@@ -49,7 +60,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g5",
-    src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+    src: "/images/french-kiss/6.jpg",
     alt: "Corporate gala event in a luxury ballroom",
     category: "Corporate",
     title: "Gala Evening",
@@ -57,7 +68,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g6",
-    src: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800&q=80",
+    src: "/images/french-kiss/7.jpg",
     alt: "Corporate cocktail reception with elegant guests",
     category: "Corporate",
     title: "Executive Reception",
@@ -65,7 +76,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g7",
-    src: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1200&q=80",
+    src: "/images/french-kiss/8.jpg",
     alt: "Luxury wedding reception with dark floral arrangements",
     category: "Wedding",
     title: "La Nuit Romantique",
@@ -73,7 +84,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g8",
-    src: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&q=80",
+    src: "/images/french-kiss/9.jpg",
     alt: "Candlelit wedding ceremony with elegant florals",
     category: "Wedding",
     title: "Ceremony of Dreams",
@@ -81,7 +92,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g9",
-    src: "https://images.unsplash.com/photo-1574391884720-bbc3740c59d1?w=800&q=80",
+    src: "/images/french-kiss/10.jpg",
     alt: "VIP table service with bottle sparklers",
     category: "VIP Table",
     title: "Sparkler Service",
@@ -90,7 +101,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g10",
-    src: "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=800&q=80",
+    src: "/images/french-kiss/11.jpg",
     alt: "Exclusive VIP lounge with premium seating",
     category: "VIP Table",
     title: "The Inner Circle",
@@ -99,7 +110,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g11",
-    src: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&q=80",
+    src: "/images/french-kiss/12.jpg",
     alt: "DJ performing at luxury nightclub event",
     category: "Nightlife",
     title: "Sound & Soul",
@@ -108,7 +119,7 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: "g12",
-    src: "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=800&q=80",
+    src: "/images/french-kiss/13.jpg",
     alt: "Elegant guests at a private party celebrating",
     category: "Private Party",
     title: "Celebration",

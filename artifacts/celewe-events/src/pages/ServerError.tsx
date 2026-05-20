@@ -36,7 +36,7 @@ export function ServerError() {
             </Link>
           </div>
           <div className="mt-16 border-t border-white/8 pt-8">
-            <p className="text-white/15 text-xs tracking-widest uppercase">Céléwé Events — Crafting Moments that Matter</p>
+            <p className="text-white/15 text-xs tracking-widest uppercase">Cèlewé Events — Crafting Moments that Matter</p>
           </div>
         </motion.div>
       </div>
