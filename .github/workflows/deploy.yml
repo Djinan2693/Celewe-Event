@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build & SSH Deploy
+    name: Build & Deploy via cPanel UAPI
     runs-on: ubuntu-latest
 
     steps:
@@ -36,14 +36,33 @@ jobs:
           BASE_PATH: /
           PORT: 4175
 
-      - name: Deploy to cPanel via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USERNAME }}
-          password: ${{ secrets.CPANEL_PASSWORD }}
-          port: ${{ secrets.CPANEL_PORT }}
-          source: "artifacts/celewe-events/dist/public/*"
-          target: ${{ secrets.CPANEL_TARGET_DIR }}
-          strip_components: 4
-          rm: false
+      - name: Zip build output
+        run: |
+          cd artifacts/celewe-events/dist/public
+          zip -r ../../../../deploy.zip .
+
+      - name: Upload zip to cPanel
+        run: |
+          curl -k -s -o upload_response.json \
+            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
+            -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
+            -F "file-1=@deploy.zip"
+          cat upload_response.json
+          grep -q '"status":1' upload_response.json || (echo "Upload failed" && exit 1)
+
+      - name: Extract zip on server
+        run: |
+          curl -k -s -o extract_response.json \
+            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/extract_archive" \
+            -d "destdir=/home/${{ secrets.CPANEL_USERNAME }}/public_html&file=/home/${{ secrets.CPANEL_USERNAME }}/public_html/deploy.zip&type=zip"
+          cat extract_response.json
+          grep -q '"status":1' extract_response.json || (echo "Extract failed" && exit 1)
+
+      - name: Delete zip from server
+        run: |
+          curl -k -s \
+            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
+            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=deploy.zip&discard_trash=1"
