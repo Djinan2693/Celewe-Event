@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Build & FTP Deploy
+    name: Build & SSH Deploy
     runs-on: ubuntu-latest
 
     steps:
@@ -36,16 +36,14 @@ jobs:
           BASE_PATH: /
           PORT: 4175
 
-      - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Deploy to cPanel via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          local-dir: ./artifacts/celewe-events/dist/public/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USERNAME }}
+          password: ${{ secrets.CPANEL_PASSWORD }}
+          port: ${{ secrets.CPANEL_PORT }}
+          source: "artifacts/celewe-events/dist/public/*"
+          target: ${{ secrets.CPANEL_TARGET_DIR }}
+          strip_components: 4
+          rm: false
