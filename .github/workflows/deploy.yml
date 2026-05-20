@@ -30,66 +30,48 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build frontend
-        run: |
-          cd artifacts/celewe-events
-          pnpm build
+        run: cd artifacts/celewe-events && pnpm build
         env:
           BASE_PATH: /
           PORT: 4175
 
       - name: Zip build output
+        run: cd artifacts/celewe-events/dist/public && zip -r ../../../../deploy.zip .
+
+      - name: Cleanup old files on server
         run: |
-          cd artifacts/celewe-events/dist/public
-          zip -r ../../../../deploy.zip .
+          curl -k -s \
+            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
+            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=deploy.zip&discard_trash=1" || true
+          curl -k -s \
+            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
+            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=extractor.php&discard_trash=1" || true
 
       - name: Upload zip to cPanel
         run: |
-            # Delete old files if they exist
-            curl -k -s \
-              -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-              "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
-              -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=deploy.zip&discard_trash=1" || true
-            curl -k -s \
-              -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-              "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
-              -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=extractor.php&discard_trash=1" || true
-
-            # Upload the deploy zip
-          curl -k -s -o upload_response.json \
+          curl -k -s -o upload_zip.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
             "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
             -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
             -F "file-1=@deploy.zip"
-          cat upload_response.json
-          grep -q '"status":1' upload_response.json || (echo "Upload zip failed" && exit 1)
+          cat upload_zip.json
+          grep -q '"status":1' upload_zip.json || (echo "Upload zip failed" && exit 1)
 
-          # Upload a PHP extractor script
-          cat > extractor.php << 'PHPEOF'
-          <?php
-          $zip = new ZipArchive;
-          $zipPath = __DIR__ . '/deploy.zip';
-          $dest = __DIR__ . '/';
-          if ($zip->open($zipPath) === TRUE) {
-              $zip->extractTo($dest);
-              $zip->close();
-              unlink($zipPath);
-              unlink(__FILE__);
-              echo json_encode(['ok' => true]);
-          } else {
-              http_response_code(500);
-              echo json_encode(['ok' => false, 'error' => 'ZipArchive failed']);
-          }
-          PHPEOF
+      - name: Upload PHP extractor
+        run: |
           curl -k -s -o upload_php.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
             "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
             -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
-            -F "file-1=@extractor.php"
+            -F "file-1=@scripts/extractor.php"
           cat upload_php.json
           grep -q '"status":1' upload_php.json || (echo "Upload PHP failed" && exit 1)
 
       - name: Run PHP extractor
         run: |
+          sleep 2
           RESULT=$(curl -k -s "https://${{ secrets.CPANEL_SITE_URL }}/extractor.php")
           echo "Extractor result: $RESULT"
           echo "$RESULT" | grep -q '"ok":true' || (echo "PHP extraction failed: $RESULT" && exit 1)
