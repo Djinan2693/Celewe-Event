@@ -44,26 +44,42 @@ jobs:
 
       - name: Upload zip to cPanel
         run: |
+          # Upload the deploy zip
           curl -k -s -o upload_response.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
             "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
             -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
             -F "file-1=@deploy.zip"
           cat upload_response.json
-          grep -q '"status":1' upload_response.json || (echo "Upload failed" && exit 1)
+          grep -q '"status":1' upload_response.json || (echo "Upload zip failed" && exit 1)
 
-      - name: Extract zip on server
-        run: |
-          curl -k -s -o extract_response.json \
+          # Upload a PHP extractor script
+          cat > extractor.php << 'PHPEOF'
+          <?php
+          $zip = new ZipArchive;
+          $zipPath = __DIR__ . '/deploy.zip';
+          $dest = __DIR__ . '/';
+          if ($zip->open($zipPath) === TRUE) {
+              $zip->extractTo($dest);
+              $zip->close();
+              unlink($zipPath);
+              unlink(__FILE__);
+              echo json_encode(['ok' => true]);
+          } else {
+              http_response_code(500);
+              echo json_encode(['ok' => false, 'error' => 'ZipArchive failed']);
+          }
+          PHPEOF
+          curl -k -s -o upload_php.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/extract_archive" \
-            -d "destdir=/home/${{ secrets.CPANEL_USERNAME }}/public_html&file=/home/${{ secrets.CPANEL_USERNAME }}/public_html/deploy.zip&type=zip"
-          cat extract_response.json
-          grep -q '"status":1' extract_response.json || (echo "Extract failed" && exit 1)
+            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
+            -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
+            -F "file-1=@extractor.php"
+          cat upload_php.json
+          grep -q '"status":1' upload_php.json || (echo "Upload PHP failed" && exit 1)
 
-      - name: Delete zip from server
+      - name: Run PHP extractor
         run: |
-          curl -k -s \
-            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
-            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=deploy.zip&discard_trash=1"
+          RESULT=$(curl -k -s "https://${{ secrets.CPANEL_SITE_URL }}/extractor.php")
+          echo "Extractor result: $RESULT"
+          echo "$RESULT" | grep -q '"ok":true' || (echo "PHP extraction failed: $RESULT" && exit 1)
