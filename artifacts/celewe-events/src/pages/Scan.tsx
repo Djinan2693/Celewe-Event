@@ -1,396 +1,314 @@
-import { useEffect, useRef, useState } from "react";
-import { useSearch } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  ScanLine,
-  Delete,
-  ShieldCheck,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { useLocation, useSearch } from "wouter";
+import { AlertCircle, CheckCircle2, TicketX } from "lucide-react";
 
-type Stage =
-  | "idle"
-  | "loading"
-  | "valid"
-  | "used"
-  | "notfound"
-  | "pin"
-  | "validating"
-  | "validated"
-  | "pinerror";
+type VerifyResponse = {
+  status: "VALID" | "USED" | "NOT_FOUND";
+  ticketCode: string;
+  event?: {
+    title: string;
+    dateISO: string;
+    venue: string;
+  };
+  usedAt?: string;
+};
 
-interface TicketInfo {
-  code: string;
-  status: string;
-  holderName: string;
-  holderEmail: string;
-  eventTitle: string;
-  usedAt: string | null;
-  createdAt: string;
+type ScreenState =
+  | { kind: "idle" }
+  | { kind: "loading"; code: string }
+  | { kind: "loaded"; result: VerifyResponse }
+  | { kind: "error"; message: string };
+
+type AudioContextCtor = typeof AudioContext;
+
+const STATUS_STYLES: Record<
+  VerifyResponse["status"],
+  {
+    ring: string;
+    text: string;
+    panel: string;
+    icon: ReactNode;
+    title: string;
+    subtitle: string;
+  }
+> = {
+  VALID: {
+    ring: "border-emerald-500/40",
+    text: "text-emerald-400",
+    panel: "bg-emerald-500/10",
+    icon: <CheckCircle2 className="h-16 w-16 text-emerald-400" />,
+    title: "VALID",
+    subtitle: "Ticket is valid for entry.",
+  },
+  USED: {
+    ring: "border-red-500/40",
+    text: "text-red-400",
+    panel: "bg-red-500/10",
+    icon: <TicketX className="h-16 w-16 text-red-400" />,
+    title: "USED",
+    subtitle: "This ticket has already been used.",
+  },
+  NOT_FOUND: {
+    ring: "border-red-500/40",
+    text: "text-red-400",
+    panel: "bg-red-500/10",
+    icon: <AlertCircle className="h-16 w-16 text-red-400" />,
+    title: "NOT_FOUND",
+    subtitle: "No ticket matches this code.",
+  },
+};
+
+function formatDate(dateISO: string) {
+  return new Date(dateISO).toLocaleString([], {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-const PIN_LENGTH = 6;
+function getAudioContextCtor(): AudioContextCtor | null {
+  const webkitCtor = (window as Window & { webkitAudioContext?: AudioContextCtor }).webkitAudioContext;
+  return window.AudioContext ?? webkitCtor ?? null;
+}
+
+function playStatusTone(status: VerifyResponse["status"]) {
+  const AudioCtx = getAudioContextCtor();
+
+  if (!AudioCtx) {
+    return;
+  }
+
+  const context = new AudioCtx();
+  const now = context.currentTime;
+
+  function beep(frequency: number, start: number, duration: number, gainValue: number) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  if (status === "VALID") {
+    beep(880, now, 0.13, 0.12);
+    beep(1047, now + 0.17, 0.13, 0.12);
+  } else {
+    beep(220, now, 0.2, 0.12);
+    beep(165, now + 0.24, 0.22, 0.14);
+  }
+
+  window.setTimeout(() => {
+    context.close().catch(() => {
+      return;
+    });
+  }, 900);
+}
 
 export function ScanPage() {
+  const [, setLocation] = useLocation();
   const search = useSearch();
-  const params = new URLSearchParams(search);
-  const code = params.get("code")?.trim().toUpperCase() ?? "";
+  const code = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("code")?.trim().toUpperCase() ?? "";
+  }, [search]);
 
-  const [stage, setStage] = useState<Stage>(code ? "loading" : "idle");
-  const [ticket, setTicket] = useState<TicketInfo | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState(false);
-  const [validatedAt, setValidatedAt] = useState<Date | null>(null);
-  const shakeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [state, setState] = useState<ScreenState>(code ? { kind: "loading", code } : { kind: "idle" });
+  const [autoNext, setAutoNext] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
-    document.title = "Entrance Scanner — Cèlewé Events";
-  }, []);
-
-  useEffect(() => {
-    if (!code) return;
-    setStage("loading");
-    fetch(`/api/tickets/${encodeURIComponent(code)}`)
-      .then((r) => r.json())
-      .then((d: { valid: boolean; ticket?: TicketInfo; error?: string }) => {
-        if (!d.ticket) {
-          setStage("notfound");
-          return;
-        }
-        setTicket(d.ticket);
-        setStage(d.valid ? "valid" : "used");
-      })
-      .catch(() => {
-        setFetchError("Network error — check your connection");
-        setStage("notfound");
-      });
+    document.title = code ? `Scan ${code} | Celewe Events` : "Scan | Celewe Events";
   }, [code]);
 
-  function pressPin(digit: string) {
-    if (pin.length >= PIN_LENGTH) return;
-    setPin((p) => p + digit);
-    setPinError(false);
-  }
-
-  function backspacePin() {
-    setPin((p) => p.slice(0, -1));
-    setPinError(false);
-  }
-
-  async function submitPin() {
-    if (pin.length === 0) return;
-    setStage("validating");
-    try {
-      const res = await fetch("/api/tickets/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, pin }),
-      });
-      const data = (await res.json()) as {
-        success?: boolean;
-        ticket?: TicketInfo;
-        error?: string;
-        status?: string;
-      };
-
-      if (res.ok && data.success && data.ticket) {
-        setTicket(data.ticket);
-        setValidatedAt(new Date());
-        setStage("validated");
-      } else if (res.status === 401) {
-        setPinError(true);
-        setPin("");
-        setStage("pin");
-        if (shakeRef.current) clearTimeout(shakeRef.current);
-        shakeRef.current = setTimeout(() => setPinError(false), 800);
-      } else if (res.status === 409) {
-        setStage("used");
-      } else {
-        setFetchError(data.error ?? "Unexpected error");
-        setStage("notfound");
-      }
-    } catch {
-      setFetchError("Network error — check your connection");
-      setStage("notfound");
+  useEffect(() => {
+    if (!code) {
+      setState({ kind: "idle" });
+      return;
     }
-  }
 
-  const KEYPAD_ROWS = [
-    ["1", "2", "3"],
-    ["4", "5", "6"],
-    ["7", "8", "9"],
-    ["", "0", "⌫"],
-  ];
+    let cancelled = false;
+    setState({ kind: "loading", code });
+
+    fetch(`/api/tickets/verify?code=${encodeURIComponent(code)}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error ?? "Unable to verify ticket");
+        }
+
+        return response.json() as Promise<VerifyResponse>;
+      })
+      .then((result) => {
+        if (!cancelled) {
+          setState({ kind: "loaded", result });
+        }
+      })
+      .catch((error: Error) => {
+        if (!cancelled) {
+          setState({ kind: "error", message: error.message });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code]);
+
+  useEffect(() => {
+    if (!autoNext) {
+      return;
+    }
+
+    if (state.kind !== "loaded" && state.kind !== "error") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLocation("/scan");
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [autoNext, setLocation, state.kind]);
+
+  useEffect(() => {
+    if (!soundEnabled) {
+      return;
+    }
+
+    if (state.kind !== "loaded") {
+      return;
+    }
+
+    playStatusTone(state.result.status);
+  }, [soundEnabled, state]);
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 text-primary/70 text-xs uppercase tracking-[0.25em] mb-2">
-            <ScanLine size={13} />
-            Entrance Scanner
+    <div className="min-h-screen bg-[#120d0e] text-white px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-3xl items-center justify-center">
+        {state.kind === "idle" && (
+          <div className="w-full max-w-xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl">
+            <AlertCircle className="mx-auto mb-5 h-14 w-14 text-white/50" />
+            <h1 className="font-heading text-4xl text-white">Ticket Scan</h1>
+            <p className="mt-4 text-sm text-white/65">Open this page with a code query parameter to verify a ticket.</p>
+            <p className="mt-2 text-xs text-white/45">Example: /scan?code=CE-FK-000001-ABCD</p>
           </div>
-          <h1 className="font-heading text-2xl text-white">Cèlewé Events</h1>
-        </div>
+        )}
 
-        <AnimatePresence mode="wait">
-          {stage === "idle" && (
-            <motion.div
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-border/50 p-10 text-center"
-            >
-              <ScanLine size={40} className="text-white/20 mx-auto mb-4" />
-              <p className="text-white/40 text-sm">No ticket code provided.</p>
-              <p className="text-white/25 text-xs mt-2">Scan a QR code to begin.</p>
-            </motion.div>
-          )}
+        {state.kind === "loading" && (
+          <div className="w-full max-w-xl border border-white/10 bg-white/5 p-10 text-center shadow-2xl">
+            <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <h1 className="font-heading text-4xl text-white">Checking Ticket</h1>
+            <p className="mt-4 font-mono text-sm text-white/55">{state.code}</p>
+          </div>
+        )}
 
-          {stage === "loading" && (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-border/50 p-10 text-center"
+        {state.kind === "error" && (
+          <div className="w-full max-w-xl border border-red-500/30 bg-red-500/10 p-8 text-center shadow-2xl">
+            <AlertCircle className="mx-auto mb-5 h-14 w-14 text-red-400" />
+            <h1 className="font-heading text-4xl text-red-400">Error</h1>
+            <p className="mt-4 text-sm text-white/70">{state.message}</p>
+            <button
+              onClick={() => setLocation("/scan")}
+              className="mt-6 border border-white/20 px-5 py-2 text-xs uppercase tracking-[0.2em] text-white/75 transition hover:border-white/40 hover:text-white"
             >
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-white/50 text-sm">Verifying ticket…</p>
-              <p className="text-white/30 text-xs mt-1 font-mono">{code}</p>
-            </motion.div>
-          )}
+              Scan Next
+            </button>
+          </div>
+        )}
 
-          {(stage === "notfound") && (
-            <motion.div
-              key="notfound"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-red-900/60 p-8 text-center"
-            >
-              <XCircle size={52} className="text-red-500 mx-auto mb-4" />
-              <p className="font-heading text-2xl text-red-400 mb-2">Not Found</p>
-              <p className="text-white/30 text-xs font-mono mb-3">{code || "—"}</p>
-              <p className="text-red-400/60 text-sm">{fetchError ?? "This ticket code does not exist."}</p>
-            </motion.div>
-          )}
+        {state.kind === "loaded" && (() => {
+          const styles = STATUS_STYLES[state.result.status];
 
-          {stage === "used" && ticket && (
-            <motion.div
-              key="used"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-orange-900/60 p-8 text-center"
-            >
-              <XCircle size={52} className="text-orange-400 mx-auto mb-4" />
-              <p className="font-heading text-2xl text-orange-400 mb-1">Already Used</p>
-              <p className="text-white/30 text-xs font-mono mb-5">{ticket.code}</p>
-              <div className="space-y-2 text-sm border-t border-white/10 pt-5">
-                <div className="flex justify-between">
-                  <span className="text-white/40 text-xs uppercase tracking-wider">Guest</span>
-                  <span className="text-white">{ticket.holderName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40 text-xs uppercase tracking-wider">Event</span>
-                  <span className="text-white text-right max-w-[60%]">{ticket.eventTitle}</span>
-                </div>
-                {ticket.usedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-white/40 text-xs uppercase tracking-wider">Validated</span>
-                    <span className="text-orange-400/80 text-xs">
-                      {new Date(ticket.usedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
+          return (
+            <div className={`w-full max-w-2xl border ${styles.ring} ${styles.panel} p-8 shadow-2xl sm:p-10`}>
+              <div className="flex flex-col items-center text-center">
+                {styles.icon}
+                <p className={`mt-6 text-xs font-semibold tracking-[0.35em] ${styles.text}`}>TICKET STATUS</p>
+                <h1 className={`mt-3 font-heading text-5xl ${styles.text}`}>{styles.title}</h1>
+                <p className="mt-4 text-base text-white/75">{styles.subtitle}</p>
+                <p className="mt-6 rounded-full border border-white/10 px-4 py-2 font-mono text-sm text-white/70">
+                  {state.result.ticketCode}
+                </p>
+              </div>
+
+              {state.result.event && (
+                <div className="mt-8 grid gap-4 border-t border-white/10 pt-8 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Event</p>
+                    <p className="mt-2 text-sm text-white">{state.result.event.title}</p>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          )}
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Date</p>
+                    <p className="mt-2 text-sm text-white">{formatDate(state.result.event.dateISO)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Venue</p>
+                    <p className="mt-2 text-sm text-white">{state.result.event.venue}</p>
+                  </div>
+                </div>
+              )}
 
-          {stage === "valid" && ticket && (
-            <motion.div
-              key="valid"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-green-900/50"
-            >
-              <div className="p-8 text-center border-b border-white/10">
-                <CheckCircle2 size={52} className="text-green-400 mx-auto mb-3" />
-                <p className="font-heading text-2xl text-green-400 mb-1">Valid Ticket</p>
-                <p className="text-white/30 text-xs font-mono">{ticket.code}</p>
-              </div>
-              <div className="p-6 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/40 text-xs uppercase tracking-wider">Guest</span>
-                  <span className="text-white font-medium">{ticket.holderName}</span>
+              {state.result.status === "USED" && state.result.usedAt && (
+                <div className="mt-6 border-t border-white/10 pt-6 text-center">
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Used At</p>
+                  <p className="mt-2 text-sm text-white">{formatDate(state.result.usedAt)}</p>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/40 text-xs uppercase tracking-wider">Email</span>
-                  <span className="text-white/60 text-xs">{ticket.holderEmail}</span>
+              )}
+
+              {state.result.status === "VALID" && (
+                <div className="mt-6 border-t border-white/10 pt-6 text-center">
+                  <p className="text-xs uppercase tracking-[0.25em] text-white/40">Ticket QR</p>
+                  <img
+                    src={`/api/tickets/qr?code=${encodeURIComponent(state.result.ticketCode)}`}
+                    alt={`QR for ${state.result.ticketCode}`}
+                    className="mx-auto mt-4 h-44 w-44 rounded border border-white/20 bg-white p-2"
+                  />
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/40 text-xs uppercase tracking-wider">Event</span>
-                  <span className="text-white text-right text-xs max-w-[55%]">{ticket.eventTitle}</span>
-                </div>
-              </div>
-              <div className="px-6 pb-6">
+              )}
+
+              <div className="mt-6 flex flex-col items-center gap-4 border-t border-white/10 pt-6">
+                <label className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/65">
+                  <input
+                    type="checkbox"
+                    checked={autoNext}
+                    onChange={(event) => setAutoNext(event.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Auto next scan (3.5s)
+                </label>
+                <label className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-white/65">
+                  <input
+                    type="checkbox"
+                    checked={soundEnabled}
+                    onChange={(event) => setSoundEnabled(event.target.checked)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Sound feedback
+                </label>
                 <button
-                  onClick={() => {
-                    setPin("");
-                    setPinError(false);
-                    setStage("pin");
-                  }}
-                  className="w-full bg-green-600 hover:bg-green-500 active:bg-green-700 text-white py-4 text-sm uppercase tracking-widest font-medium transition-colors"
-                >
-                  Validate Entry
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {(stage === "pin" || stage === "validating") && (
-            <motion.div
-              key="pin"
-              initial={{ opacity: 0, y: 10 }}
-              animate={pinError ? { opacity: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, x: 0 }}
-              transition={pinError ? { duration: 0.4 } : { duration: 0.3 }}
-              exit={{ opacity: 0 }}
-              className="bg-card border border-border/50"
-            >
-              <div className="p-6 border-b border-white/10 text-center">
-                <ShieldCheck size={22} className="text-primary mx-auto mb-2" />
-                <p className="font-heading text-lg text-white">Staff PIN Required</p>
-                <p className="text-white/35 text-xs mt-1">Enter your PIN to validate entry</p>
-              </div>
-
-              <div className="p-6">
-                <div className="flex items-center justify-center gap-3 mb-6 h-12">
-                  {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-3 h-3 rounded-full transition-all duration-150 ${
-                        i < pin.length
-                          ? pinError
-                            ? "bg-red-500 scale-110"
-                            : "bg-primary scale-110"
-                          : "bg-white/15"
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {pinError && (
-                  <p className="text-red-400 text-xs text-center mb-4 uppercase tracking-wider">
-                    Incorrect PIN — try again
-                  </p>
-                )}
-
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {KEYPAD_ROWS.map((row, ri) =>
-                    row.map((key, ki) => {
-                      if (!key) return <div key={`${ri}-${ki}`} />;
-                      const isBackspace = key === "⌫";
-                      return (
-                        <button
-                          key={`${ri}-${ki}`}
-                          disabled={stage === "validating"}
-                          onClick={() => (isBackspace ? backspacePin() : pressPin(key))}
-                          className={`h-14 text-lg font-medium transition-all active:scale-95 select-none
-                            ${isBackspace
-                              ? "text-white/40 hover:text-white/70 bg-white/5 hover:bg-white/10"
-                              : "text-white bg-white/8 hover:bg-white/15 border border-white/10 hover:border-white/25"
-                            } disabled:opacity-40`}
-                        >
-                          {isBackspace ? <Delete size={18} className="mx-auto" /> : key}
-                        </button>
-                      );
-                    }),
-                  )}
-                </div>
-
-                <button
-                  disabled={pin.length === 0 || stage === "validating"}
-                  onClick={submitPin}
-                  className="w-full py-4 bg-primary hover:bg-primary/90 text-white text-sm uppercase tracking-widest font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {stage === "validating" ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Validating…
-                    </span>
-                  ) : (
-                    "Confirm"
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setStage("valid")}
-                  disabled={stage === "validating"}
-                  className="w-full mt-3 py-3 text-white/30 hover:text-white/60 text-xs uppercase tracking-wider transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {stage === "validated" && ticket && (
-            <motion.div
-              key="validated"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 180, damping: 20 }}
-              className="bg-green-600 text-white text-center py-12 px-8"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.15, type: "spring", stiffness: 220, damping: 16 }}
-              >
-                <CheckCircle2 size={72} className="mx-auto mb-5 text-white drop-shadow-lg" />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <p className="font-heading text-4xl font-bold mb-1 tracking-wide">ENTRY</p>
-                <p className="font-heading text-4xl font-bold tracking-wide mb-6">VALIDATED</p>
-
-                <div className="inline-block bg-green-700/60 border border-white/20 px-5 py-2 mb-6">
-                  <p className="font-mono text-xl tracking-[0.2em] font-bold">{ticket.code}</p>
-                </div>
-
-                <div className="space-y-2 text-green-100/90 text-sm">
-                  <p className="text-white font-medium text-lg">{ticket.holderName}</p>
-                  <p className="text-green-200/70 text-xs">{ticket.eventTitle}</p>
-                  {validatedAt && (
-                    <p className="text-green-200/50 text-xs font-mono mt-3">
-                      {validatedAt.toLocaleDateString()} &nbsp;·&nbsp;{" "}
-                      {validatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    window.location.href = "/scan";
-                  }}
-                  className="mt-8 bg-white/20 hover:bg-white/30 border border-white/30 text-white px-8 py-3 text-xs uppercase tracking-widest transition-colors"
+                  onClick={() => setLocation("/scan")}
+                  className="border border-white/20 px-5 py-2 text-xs uppercase tracking-[0.2em] text-white/75 transition hover:border-white/40 hover:text-white"
                 >
                   Scan Next
                 </button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

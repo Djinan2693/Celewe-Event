@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderProvider {
+  MANUAL
+  PAYPAL
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  dateISO   String
+  venue     String
+  pricePHP  Int
+  currency  String   @default("PHP")
+  orders    Order[]
+  tickets   Ticket[]
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  eventId        String
+  buyerFirstName String
+  buyerLastName  String
+  buyerEmail     String
+  buyerPhone     String
+  qty            Int
+  amountPHP      Int
+  status         OrderStatus
+  provider       OrderProvider
+  providerRef    String?
+  providerCurrency String?
+  providerAmount   String?
+  fxPhpPerUnit     Float?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  event          Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  tickets        Ticket[]
+
+  @@index([eventId])
+}
+
+model Ticket {
+  id         String       @id @default(cuid())
+  orderId    String?
+  eventId    String
+  ticketCode String       @unique
+  status     TicketStatus
+  usedAt     DateTime?
+  createdAt  DateTime     @default(now())
+  order      Order?       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  event      Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([eventId])
+}

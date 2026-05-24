@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, Link } from "wouter";
+import React, { useState, useEffect, useMemo } from "react";
+import { useParams, Link, useSearch } from "wouter";
 import { Calendar, MapPin, Clock, ArrowLeft, CreditCard, Smartphone, Zap, QrCode } from "lucide-react";
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
@@ -9,51 +9,27 @@ import { IMG_EVENT_FRENCH_KISS } from "@/assets/images";
 import { GalleryGrid } from "@/components/GalleryGrid";
 import { frenchKissGallery } from "@/data/frenchKissGallery";
 
-declare global {
-  interface Window {
-    Paddle?: {
-      Setup: (opts: { token: string; eventCallback?: (e: unknown) => void }) => void;
-      Environment: { set: (env: string) => void };
-      Checkout: {
-        open: (opts: {
-          items: { priceId: string; quantity: number }[];
-          customData?: Record<string, string>;
-          settings?: {
-            successUrl?: string;
-            displayMode?: string;
-            theme?: string;
-            locale?: string;
-          };
-        }) => void;
-      };
-    };
-  }
-}
-
-function usePaddle() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN as string | undefined;
-    if (!clientToken || !window.Paddle) return;
-
-    const paddleEnv = (import.meta.env.VITE_PADDLE_ENV as string | undefined) ?? "sandbox";
-    if (paddleEnv === "sandbox") {
-      window.Paddle.Environment.set("sandbox");
-    }
-
-    window.Paddle.Setup({ token: clientToken });
-    setReady(true);
-  }, []);
-
-  return ready;
-}
+type CreatePaypalOrderResponse = {
+  paypalOrderId: string;
+  localOrderId: string;
+  approvalUrl?: string | null;
+};
 
 export function EventDetail() {
   const { slug } = useParams();
+  const search = useSearch();
+  const query = useMemo(() => new URLSearchParams(search), [search]);
   const event = events.find(e => e.slug === slug);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const paddleReady = usePaddle();
+  const [captureLoading, setCaptureLoading] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    qty: 1,
+  });
 
   if (!event) {
     return (
@@ -67,32 +43,97 @@ export function EventDetail() {
     );
   }
 
-  const hasPaddle = !!(event.paddlePriceId && paddleReady && window.Paddle);
-  const baseUrl = window.location.origin + (import.meta.env.BASE_URL ?? "/");
+  const eventSlug = event.slug;
+  const orderTotal = event.priceAmount * form.qty;
 
-  const openPaddleCheckout = useCallback(() => {
-    if (!window.Paddle || !event.paddlePriceId) return;
+  async function startPaypalCheckout() {
+    setFeedbackMessage(null);
+
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.phone.trim()) {
+      setFeedbackMessage("Please complete all buyer details before checkout.");
+      return;
+    }
+
     setCheckoutLoading(true);
 
     try {
-      window.Paddle.Checkout.open({
-        items: [{ priceId: event.paddlePriceId, quantity: 1 }],
-        customData: {
-          eventId: event.id,
-          eventTitle: event.title,
-          eventDate: event.date,
-          eventVenue: event.venue,
-        },
-        settings: {
-          successUrl: `${baseUrl}payment/success`,
-          displayMode: "overlay",
-          theme: "dark",
-        },
+      const response = await fetch("/api/paypal/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventSlug,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone,
+          qty: form.qty,
+        }),
       });
+
+      const payload = (await response.json()) as CreatePaypalOrderResponse & { error?: string; errors?: string[] };
+
+      if (!response.ok) {
+        setFeedbackMessage(payload.error ?? payload.errors?.join(" ") ?? "Could not create PayPal order.");
+        return;
+      }
+
+      if (!payload.approvalUrl) {
+        setFeedbackMessage("PayPal approval link is missing.");
+        return;
+      }
+
+      window.location.href = payload.approvalUrl;
+    } catch {
+      setFeedbackMessage("Network error while creating PayPal order.");
     } finally {
-      setTimeout(() => setCheckoutLoading(false), 1000);
+      setCheckoutLoading(false);
     }
-  }, [event, baseUrl]);
+  }
+
+  useEffect(() => {
+    const token = query.get("token");
+    const paypalStatus = query.get("paypal");
+
+    if (!token || paypalStatus !== "success") {
+      if (paypalStatus === "cancel") {
+        setFeedbackMessage("PayPal payment was cancelled.");
+      }
+      return;
+    }
+
+    let active = true;
+    setCaptureLoading(true);
+    setFeedbackMessage("Finalizing PayPal payment...");
+
+    fetch("/api/paypal/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paypalOrderId: token }),
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Could not capture PayPal payment");
+        }
+        if (active) {
+          setFeedbackMessage("Payment captured successfully. Your tickets are now active.");
+        }
+      })
+      .catch((error: Error) => {
+        if (active) {
+          setFeedbackMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setCaptureLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [query]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -230,6 +271,44 @@ export function EventDetail() {
               <div className="mb-6">
                 <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Price per person</div>
                 <div className="text-4xl font-heading text-primary">{event.price}</div>
+                <div className="text-xs text-muted-foreground mt-2">Order total: {event.currency} {orderTotal.toLocaleString()}</div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                <input
+                  value={form.firstName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="First name"
+                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
+                />
+                <input
+                  value={form.lastName}
+                  onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Last name"
+                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
+                />
+                <input
+                  value={form.email}
+                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                  placeholder="Email"
+                  type="email"
+                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
+                />
+                <input
+                  value={form.phone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Phone"
+                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
+                />
+                <input
+                  value={form.qty}
+                  onChange={(e) => setForm((prev) => ({ ...prev, qty: Math.max(1, Math.min(20, Number(e.target.value) || 1)) }))}
+                  placeholder="Quantity"
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
+                />
               </div>
 
               <div className="space-y-5 mb-8">
@@ -257,23 +336,29 @@ export function EventDetail() {
               </div>
 
               <Button
-                onClick={hasPaddle ? openPaddleCheckout : undefined}
-                disabled={event.sold_out || checkoutLoading || !hasPaddle}
+                onClick={startPaypalCheckout}
+                disabled={event.sold_out || checkoutLoading || captureLoading}
                 className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium disabled:opacity-50"
               >
                 <CreditCard className="mr-2" size={18} />
                 {event.sold_out
                   ? "Sold Out"
                   : checkoutLoading
-                  ? "Opening checkout..."
-                  : "Pay & Get Ticket Instantly"}
+                  ? "Creating PayPal order..."
+                  : captureLoading
+                  ? "Capturing payment..."
+                  : "Buy Ticket with PayPal"}
               </Button>
+
+              {feedbackMessage && (
+                <p className="mt-3 text-xs text-white/70">{feedbackMessage}</p>
+              )}
 
               {!event.sold_out && (
                 <div className="mt-4 space-y-2 pt-4 border-t border-border/30">
                   <div className="flex items-center gap-2 text-white/40 text-xs">
                     <CreditCard size={11} />
-                    <span>Secure payment via Paddle</span>
+                    <span>Secure payment via PayPal</span>
                   </div>
                   <div className="flex items-center gap-2 text-white/40 text-xs">
                     <QrCode size={11} />

@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Typecheck frontend
+        run: pnpm --filter @workspace/celewe-events typecheck
+
       - name: Build frontend
         run: cd artifacts/celewe-events && pnpm build
         env:
