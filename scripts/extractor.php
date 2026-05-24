@@ -1,6 +1,7 @@
 <?php
 $zip = new ZipArchive;
-$zipPath = __DIR__ . '/deploy.zip';
+$zipFile = isset($_GET['zip']) ? basename((string) $_GET['zip']) : 'deploy.zip';
+$zipPath = __DIR__ . '/' . $zipFile;
 $dest = __DIR__ . '/';
 if ($zip->open($zipPath) === TRUE) {
     $zip->extractTo($dest);

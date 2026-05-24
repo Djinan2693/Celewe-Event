@@ -39,42 +39,39 @@ jobs:
           PORT: 4175
 
       - name: Zip build output
-        run: cd artifacts/celewe-events/dist/public && zip -r ../../../../deploy.zip .
-
-      - name: Cleanup old files on server
         run: |
-          curl -k -s \
-            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
-            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=deploy.zip&discard_trash=1" || true
-          curl -k -s \
-            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/delete_files" \
-            -d "files%5B0%5D%5Bpath%5D=%2Fhome%2F${{ secrets.CPANEL_USERNAME }}%2Fpublic_html&files%5B0%5D%5Bname%5D=extractor.php&discard_trash=1" || true
+          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
+          cd artifacts/celewe-events/dist/public
+          zip -r "../../../../${ZIP_NAME}" .
 
       - name: Upload zip to cPanel
         run: |
+          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
           curl -k -s -o upload_zip.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
             "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
             -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
-            -F "file-1=@deploy.zip"
+            -F "file-1=@${ZIP_NAME}"
           cat upload_zip.json
           grep -q '"status":1' upload_zip.json || (echo "Upload zip failed" && exit 1)
 
       - name: Upload PHP extractor
         run: |
+          EXTRACTOR_NAME="extractor-${GITHUB_RUN_ID}.php"
+          cp scripts/extractor.php "${EXTRACTOR_NAME}"
           curl -k -s -o upload_php.json \
             -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
             "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
             -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
-            -F "file-1=@scripts/extractor.php"
+            -F "file-1=@${EXTRACTOR_NAME}"
           cat upload_php.json
           grep -q '"status":1' upload_php.json || (echo "Upload PHP failed" && exit 1)
 
       - name: Run PHP extractor
         run: |
           sleep 2
+          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
+          EXTRACTOR_NAME="extractor-${GITHUB_RUN_ID}.php"
           SITE_URL="${{ secrets.CPANEL_SITE_URL }}"
           SITE_URL="${SITE_URL#http://}"
           SITE_URL="${SITE_URL#https://}"
@@ -82,7 +79,7 @@ jobs:
           CPANEL_HOST="${CPANEL_HOST#http://}"
           CPANEL_HOST="${CPANEL_HOST#https://}"
 
-          URLS=("https://${SITE_URL}/extractor.php" "https://${CPANEL_HOST}/extractor.php")
+          URLS=("https://${SITE_URL}/${EXTRACTOR_NAME}?zip=${ZIP_NAME}" "https://${CPANEL_HOST}/${EXTRACTOR_NAME}?zip=${ZIP_NAME}")
           SUCCESS=0
 
           for URL in "${URLS[@]}"; do
