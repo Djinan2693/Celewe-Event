@@ -54,7 +54,7 @@ jobs:
           CPANEL_HOST="${CPANEL_HOST%%/*}"
           CPANEL_HOST="${CPANEL_HOST%%:*}"
 
-          HOSTS=("${SITE_URL}" "${CPANEL_HOST}")
+          HOSTS=("${CPANEL_HOST}" "${SITE_URL}")
           SUCCESS=0
 
           for HOST in "${HOSTS[@]}"; do
@@ -62,7 +62,7 @@ jobs:
             echo "Trying FTPS deploy to host: $HOST"
 
             lftp -u "${{ secrets.CPANEL_USERNAME }}","${{ secrets.CPANEL_PASSWORD }}" "$HOST" \
-              -e "set ssl:verify-certificate no; set ftp:ssl-force true; set ftp:ssl-protect-data true; set xfer:clobber on; mirror -R --delete --verbose artifacts/celewe-events/dist/public /public_html; bye" && SUCCESS=1
+              -e "set net:timeout 12; set net:max-retries 1; set net:reconnect-interval-base 3; set ssl:verify-certificate no; set ftp:ssl-force true; set ftp:ssl-protect-data true; set xfer:clobber on; mirror -R --delete --verbose artifacts/celewe-events/dist/public /public_html; bye" && SUCCESS=1
 
             if [ "$SUCCESS" -eq 1 ]; then
               echo "FTPS deploy succeeded on host: $HOST"
