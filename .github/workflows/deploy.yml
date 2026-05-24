@@ -38,62 +38,44 @@ jobs:
           BASE_PATH: /
           PORT: 4175
 
-      - name: Zip build output
-        run: |
-          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
-          cd artifacts/celewe-events/dist/public
-          zip -r "../../../../${ZIP_NAME}" .
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Upload zip to cPanel
+      - name: Deploy via FTPS mirror
         run: |
-          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
-          curl -k -s -o upload_zip.json \
-            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
-            -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
-            -F "file-1=@${ZIP_NAME}"
-          cat upload_zip.json
-          grep -q '"status":1' upload_zip.json || (echo "Upload zip failed" && exit 1)
-
-      - name: Upload PHP extractor
-        run: |
-          EXTRACTOR_NAME="extractor-${GITHUB_RUN_ID}.php"
-          cp scripts/extractor.php "${EXTRACTOR_NAME}"
-          curl -k -s -o upload_php.json \
-            -u "${{ secrets.CPANEL_USERNAME }}:${{ secrets.CPANEL_PASSWORD }}" \
-            "https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files" \
-            -F "dir=/home/${{ secrets.CPANEL_USERNAME }}/public_html" \
-            -F "file-1=@${EXTRACTOR_NAME}"
-          cat upload_php.json
-          grep -q '"status":1' upload_php.json || (echo "Upload PHP failed" && exit 1)
-
-      - name: Run PHP extractor
-        run: |
-          sleep 2
-          ZIP_NAME="deploy-${GITHUB_RUN_ID}.zip"
-          EXTRACTOR_NAME="extractor-${GITHUB_RUN_ID}.php"
           SITE_URL="${{ secrets.CPANEL_SITE_URL }}"
           SITE_URL="${SITE_URL#http://}"
           SITE_URL="${SITE_URL#https://}"
+          SITE_URL="${SITE_URL%%/*}"
           CPANEL_HOST="${{ secrets.CPANEL_HOST }}"
           CPANEL_HOST="${CPANEL_HOST#http://}"
           CPANEL_HOST="${CPANEL_HOST#https://}"
+          CPANEL_HOST="${CPANEL_HOST%%/*}"
 
-          URLS=("https://${SITE_URL}/${EXTRACTOR_NAME}?zip=${ZIP_NAME}" "https://${CPANEL_HOST}/${EXTRACTOR_NAME}?zip=${ZIP_NAME}")
+          HOSTS=("${SITE_URL}" "${CPANEL_HOST}")
           SUCCESS=0
 
-          for URL in "${URLS[@]}"; do
-            echo "Trying extractor URL: $URL"
-            RESULT=$(curl -k -s "$URL" || true)
-            echo "Extractor result from $URL: $RESULT"
+          for HOST in "${HOSTS[@]}"; do
+            [ -z "$HOST" ] && continue
+            echo "Trying FTPS deploy to host: $HOST"
 
-            if echo "$RESULT" | grep -q '"ok":true'; then
+            lftp -u "${{ secrets.CPANEL_USERNAME }}","${{ secrets.CPANEL_PASSWORD }}" "$HOST" <<'EOF' && SUCCESS=1
+set ssl:verify-certificate no
+set ftp:ssl-force true
+set ftp:ssl-protect-data true
+set xfer:clobber on
+mirror -R --delete --verbose artifacts/celewe-events/dist/public /public_html
+bye
+EOF
+
+            if [ "$SUCCESS" -eq 1 ]; then
+              echo "FTPS deploy succeeded on host: $HOST"
               SUCCESS=1
               break
             fi
           done
 
           if [ "$SUCCESS" -ne 1 ]; then
-            echo "PHP extraction failed on all candidate URLs"
+            echo "FTPS deployment failed on all candidate hosts"
             exit 1
           fi
