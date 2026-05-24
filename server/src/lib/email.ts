@@ -1,6 +1,10 @@
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { generateTicketQrPngBuffer } from "./qr";
+
 type TicketEmailItem = {
   ticketCode: string;
-  qrUrl: string;
+  qrImageUrl: string;
+  scanUrl: string;
 };
 
 type TicketEmailPayload = {
@@ -30,6 +34,131 @@ function formatPhp(amount: number) {
   }).format(amount);
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+async function buildTicketsPdfBase64(payload: TicketEmailPayload) {
+  const pdf = await PDFDocument.create();
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
+
+  const pageWidth = 1600;
+  const pageHeight = 768;
+
+  for (const ticket of payload.tickets) {
+    const page = pdf.addPage([pageWidth, pageHeight]);
+
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: pageWidth,
+      height: pageHeight,
+      color: rgb(0.1, 0.06, 0.07),
+    });
+
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: 320,
+      height: pageHeight,
+      color: rgb(0.73, 0.06, 0.09),
+    });
+
+    page.drawRectangle({
+      x: 320,
+      y: 0,
+      width: 2,
+      height: pageHeight,
+      color: rgb(0.9, 0.9, 0.9),
+    });
+
+    page.drawText("DJ MULUKUKU", {
+      x: 420,
+      y: 540,
+      size: 112,
+      font: fontBold,
+      color: rgb(0.95, 0.95, 0.92),
+    });
+
+    page.drawText("MANILA", {
+      x: 420,
+      y: 425,
+      size: 142,
+      font: fontBold,
+      color: rgb(0.95, 0.95, 0.92),
+    });
+
+    page.drawText(payload.eventTitle.toUpperCase(), {
+      x: 420,
+      y: 338,
+      size: 34,
+      font: fontRegular,
+      color: rgb(0.93, 0.93, 0.93),
+    });
+
+    page.drawText(payload.eventDate.toUpperCase(), {
+      x: 1200,
+      y: 620,
+      size: 44,
+      font: fontBold,
+      color: rgb(0.93, 0.93, 0.93),
+    });
+
+    page.drawText(payload.eventVenue, {
+      x: 420,
+      y: 90,
+      size: 36,
+      font: fontBold,
+      color: rgb(0.9, 0.9, 0.9),
+    });
+
+    const qrPng = await generateTicketQrPngBuffer(ticket.ticketCode);
+    const qrImage = await pdf.embedPng(qrPng);
+    const qrSize = 245;
+    const qrX = 36;
+    const qrY = (pageHeight - qrSize) / 2;
+
+    page.drawRectangle({
+      x: qrX - 10,
+      y: qrY - 10,
+      width: qrSize + 20,
+      height: qrSize + 20,
+      color: rgb(1, 1, 1),
+    });
+
+    page.drawImage(qrImage, {
+      x: qrX,
+      y: qrY,
+      width: qrSize,
+      height: qrSize,
+    });
+
+    page.drawText(ticket.ticketCode, {
+      x: 36,
+      y: qrY - 48,
+      size: 26,
+      font: fontBold,
+      color: rgb(1, 1, 1),
+    });
+
+    page.drawText("VALIDATE ON: CELEWEEVENT.COM/SCAN", {
+      x: 36,
+      y: qrY - 84,
+      size: 16,
+      font: fontRegular,
+      color: rgb(1, 1, 1),
+    });
+  }
+
+  const bytes = await pdf.save();
+  return Buffer.from(bytes).toString("base64");
+}
+
 function buildHtml(payload: TicketEmailPayload) {
   const ticketRows = payload.tickets
     .map(
@@ -37,8 +166,20 @@ function buildHtml(payload: TicketEmailPayload) {
         <tr>
           <td style="padding:10px 0;border-bottom:1px solid #eee;">Ticket ${index + 1}</td>
           <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:700;">${ticket.ticketCode}</td>
-          <td style="padding:10px 0;border-bottom:1px solid #eee;"><a href="${ticket.qrUrl}">Open QR</a></td>
+          <td style="padding:10px 0;border-bottom:1px solid #eee;"><a href="${ticket.scanUrl}">Open scan link</a></td>
         </tr>
+      `,
+    )
+    .join("");
+
+  const qrBlocks = payload.tickets
+    .map(
+      (ticket, index) => `
+        <div style="margin:0 0 20px;padding:14px;border:1px solid #eee;border-radius:8px;">
+          <div style="font-weight:700;margin:0 0 10px;">Ticket ${index + 1}: ${ticket.ticketCode}</div>
+          <img src="${ticket.qrImageUrl}" alt="QR ${ticket.ticketCode}" style="display:block;width:220px;max-width:100%;height:auto;border:1px solid #ddd;padding:8px;background:#fff;" />
+          <div style="margin-top:8px;font-size:12px;color:#666;">If image is blocked, use: <a href="${ticket.scanUrl}">${ticket.scanUrl}</a></div>
+        </div>
       `,
     )
     .join("");
@@ -59,6 +200,7 @@ function buildHtml(payload: TicketEmailPayload) {
       </table>
 
       <h3 style="margin:20px 0 8px;">Your ticket${payload.tickets.length > 1 ? "s" : ""}</h3>
+      <p style="margin:0 0 10px;color:#444;">A print-ready PDF with QR code${payload.tickets.length > 1 ? "s" : ""} is attached to this email.</p>
       <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
@@ -71,6 +213,10 @@ function buildHtml(payload: TicketEmailPayload) {
           ${ticketRows}
         </tbody>
       </table>
+
+      <div style="margin-top:16px;">
+        ${qrBlocks}
+      </div>
 
       <p style="margin:20px 0 0;color:#555;">Show your QR code at the entrance.</p>
     </div>
@@ -85,6 +231,9 @@ export async function sendTicketEmail(payload: TicketEmailPayload) {
     return false;
   }
 
+  const pdfBase64 = await buildTicketsPdfBase64(payload);
+  const fileName = `${slugify(payload.eventTitle) || "ticket"}-tickets.pdf`;
+
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -96,6 +245,12 @@ export async function sendTicketEmail(payload: TicketEmailPayload) {
       to: [payload.to],
       subject: `Your ticket${payload.tickets.length > 1 ? "s" : ""} — ${payload.eventTitle}`,
       html: buildHtml(payload),
+      attachments: [
+        {
+          filename: fileName,
+          content: pdfBase64,
+        },
+      ],
     }),
   });
 
