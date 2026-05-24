@@ -8,6 +8,8 @@ import {
   getApprovalLink,
   verifyPaypalWebhookSignature,
 } from "../lib/paypal";
+import { sendTicketEmail } from "../lib/email";
+import { buildTicketScanUrl } from "../lib/qr";
 
 type CreatePaypalOrderBody = {
   eventSlug?: unknown;
@@ -104,7 +106,7 @@ async function finalizeLocalOrderAndTickets(paypalOrderId: string) {
     throw new Error("Local order not found for this PayPal order");
   }
 
-  await db.$transaction(async (tx) => {
+  const createdTickets = await db.$transaction(async (tx) => {
     if (localOrder.status !== OrderStatus.PAID) {
       await tx.order.update({
         where: { id: localOrder.id },
@@ -114,7 +116,7 @@ async function finalizeLocalOrderAndTickets(paypalOrderId: string) {
 
     const existingTickets = await tx.ticket.count({ where: { orderId: localOrder.id } });
     if (existingTickets > 0) {
-      return;
+      return false;
     }
 
     const existingTicketCountForEvent = await tx.ticket.count({ where: { eventId: localOrder.eventId } });
@@ -151,7 +153,36 @@ async function finalizeLocalOrderAndTickets(paypalOrderId: string) {
         status: TicketStatus.VALID,
       })),
     });
+
+    return true;
   });
+
+  if (createdTickets) {
+    const orderWithTickets = await db.order.findUnique({
+      where: { id: localOrder.id },
+      include: {
+        event: true,
+        tickets: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+
+    if (orderWithTickets && orderWithTickets.tickets.length > 0) {
+      await sendTicketEmail({
+        to: orderWithTickets.buyerEmail,
+        customerName: `${orderWithTickets.buyerFirstName} ${orderWithTickets.buyerLastName}`.trim(),
+        eventTitle: orderWithTickets.event.title,
+        eventDate: orderWithTickets.event.dateISO,
+        eventVenue: orderWithTickets.event.venue,
+        totalAmountPhp: orderWithTickets.amountPHP,
+        tickets: orderWithTickets.tickets.map((ticket) => ({
+          ticketCode: ticket.ticketCode,
+          qrUrl: buildTicketScanUrl(ticket.ticketCode),
+        })),
+      });
+    }
+  }
 
   return localOrder.id;
 }
