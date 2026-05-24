@@ -47,10 +47,12 @@ jobs:
           SITE_URL="${SITE_URL#http://}"
           SITE_URL="${SITE_URL#https://}"
           SITE_URL="${SITE_URL%%/*}"
+          SITE_URL="${SITE_URL%%:*}"
           CPANEL_HOST="${{ secrets.CPANEL_HOST }}"
           CPANEL_HOST="${CPANEL_HOST#http://}"
           CPANEL_HOST="${CPANEL_HOST#https://}"
           CPANEL_HOST="${CPANEL_HOST%%/*}"
+          CPANEL_HOST="${CPANEL_HOST%%:*}"
 
           HOSTS=("${SITE_URL}" "${CPANEL_HOST}")
           SUCCESS=0
@@ -59,14 +61,8 @@ jobs:
             [ -z "$HOST" ] && continue
             echo "Trying FTPS deploy to host: $HOST"
 
-            lftp -u "${{ secrets.CPANEL_USERNAME }}","${{ secrets.CPANEL_PASSWORD }}" "$HOST" <<'EOF' && SUCCESS=1
-set ssl:verify-certificate no
-set ftp:ssl-force true
-set ftp:ssl-protect-data true
-set xfer:clobber on
-mirror -R --delete --verbose artifacts/celewe-events/dist/public /public_html
-bye
-EOF
+            lftp -u "${{ secrets.CPANEL_USERNAME }}","${{ secrets.CPANEL_PASSWORD }}" "$HOST" \
+              -e "set ssl:verify-certificate no; set ftp:ssl-force true; set ftp:ssl-protect-data true; set xfer:clobber on; mirror -R --delete --verbose artifacts/celewe-events/dist/public /public_html; bye" && SUCCESS=1
 
             if [ "$SUCCESS" -eq 1 ]; then
               echo "FTPS deploy succeeded on host: $HOST"
