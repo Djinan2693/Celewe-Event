@@ -75,6 +75,28 @@ jobs:
       - name: Run PHP extractor
         run: |
           sleep 2
-          RESULT=$(curl -k -s "https://${{ secrets.CPANEL_SITE_URL }}/extractor.php")
-          echo "Extractor result: $RESULT"
-          echo "$RESULT" | grep -q '"ok":true' || (echo "PHP extraction failed: $RESULT" && exit 1)
+          SITE_URL="${{ secrets.CPANEL_SITE_URL }}"
+          SITE_URL="${SITE_URL#http://}"
+          SITE_URL="${SITE_URL#https://}"
+          CPANEL_HOST="${{ secrets.CPANEL_HOST }}"
+          CPANEL_HOST="${CPANEL_HOST#http://}"
+          CPANEL_HOST="${CPANEL_HOST#https://}"
+
+          URLS=("https://${SITE_URL}/extractor.php" "https://${CPANEL_HOST}/extractor.php")
+          SUCCESS=0
+
+          for URL in "${URLS[@]}"; do
+            echo "Trying extractor URL: $URL"
+            RESULT=$(curl -k -s "$URL" || true)
+            echo "Extractor result from $URL: $RESULT"
+
+            if echo "$RESULT" | grep -q '"ok":true'; then
+              SUCCESS=1
+              break
+            fi
+          done
+
+          if [ "$SUCCESS" -ne 1 ]; then
+            echo "PHP extraction failed on all candidate URLs"
+            exit 1
+          fi
