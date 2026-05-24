@@ -6,6 +6,9 @@
   RewriteRule ^events/nuit-blanche/?$ /events/dj-mulukuku-manila [R=301,L]
   RewriteRule ^events/crimson-masquerade/?$ /events [R=301,L]
 
+  # Never rewrite backend API routes to index.html
+  RewriteRule ^api(/|$) - [L]
+
   # SPA fallback: if request is not an existing file/folder, serve index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
