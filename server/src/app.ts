@@ -10,6 +10,13 @@ export function createApp() {
 
   app.use(express.json());
 
+  // cPanel Node.js apps can forward requests with or without the app URL
+  // prefix depending on proxy setup. We mount both to keep /api stable.
+  app.use(healthRouter);
+  app.use(ordersRouter);
+  app.use(ticketsRouter);
+  app.use(paypalRouter);
+
   app.use("/api", healthRouter);
   app.use("/api", ordersRouter);
   app.use("/api", ticketsRouter);
