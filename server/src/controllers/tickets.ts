@@ -1,10 +1,18 @@
 import type { Request, Response } from "express";
 import { TicketStatus } from "@prisma/client";
+import { appendFile, mkdir } from "node:fs/promises";
+import path from "node:path";
 import { db } from "../lib/db";
 import { buildTicketScanUrl, generateTicketQrPngBuffer } from "../lib/qr";
 import { createTicketCodeGenerator } from "../lib/ticketCode";
 
 type VerifyStatus = "VALID" | "USED" | "NOT_FOUND";
+
+type UseTicketBody = {
+  code?: unknown;
+  pin?: unknown;
+  agentName?: unknown;
+};
 
 function getStaffPin() {
   const pin = process.env.STAFF_PIN?.trim();
@@ -22,6 +30,27 @@ function isStaffPinValid(pin: unknown) {
 
 function csvEscape(value: string) {
   return `"${value.replace(/"/g, '""')}"`;
+}
+
+async function appendTicketScanLog(entry: {
+  ticketCode: string;
+  status: VerifyStatus;
+  agentName: string;
+  usedAtISO?: string;
+}) {
+  const logPath = process.env.SCAN_LOG_PATH?.trim() || path.join(process.cwd(), "tmp", "ticket-scan-history.log");
+  const logDir = path.dirname(logPath);
+
+  try {
+    await mkdir(logDir, { recursive: true });
+    await appendFile(
+      logPath,
+      `${JSON.stringify({ timestampISO: new Date().toISOString(), ...entry })}\n`,
+      "utf8",
+    );
+  } catch (error) {
+    console.error("[ticket-scan-log] failed to append", error);
+  }
 }
 
 export async function verifyTicket(req: Request, res: Response) {
@@ -58,6 +87,94 @@ export async function verifyTicket(req: Request, res: Response) {
       venue: ticket.event.venue,
     },
     usedAt: ticket.usedAt ?? undefined,
+  });
+}
+
+export async function useTicket(req: Request, res: Response) {
+  const body = (req.body ?? {}) as UseTicketBody;
+  const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
+  const pin = body.pin;
+  const agentName = typeof body.agentName === "string" && body.agentName.trim().length > 0
+    ? body.agentName.trim().slice(0, 80)
+    : "STAFF";
+
+  if (!code) {
+    return res.status(400).json({ error: "code is required" });
+  }
+
+  if (!isStaffPinValid(pin)) {
+    return res.status(401).json({ error: "Invalid staff pin" });
+  }
+
+  const ticket = await db.ticket.findUnique({
+    where: { ticketCode: code },
+    include: { event: true },
+  });
+
+  if (!ticket) {
+    await appendTicketScanLog({
+      ticketCode: code,
+      status: "NOT_FOUND",
+      agentName,
+    });
+
+    return res.status(404).json({
+      status: "NOT_FOUND" satisfies VerifyStatus,
+      ticketCode: code,
+    });
+  }
+
+  if (ticket.status !== TicketStatus.VALID) {
+    const usedAtISO = (ticket.usedAt ?? new Date()).toISOString();
+
+    await appendTicketScanLog({
+      ticketCode: ticket.ticketCode,
+      status: "USED",
+      agentName,
+      usedAtISO,
+    });
+
+    return res.status(409).json({
+      status: "USED" satisfies VerifyStatus,
+      ticketCode: ticket.ticketCode,
+      usedAt: ticket.usedAt ?? new Date(),
+      event: {
+        title: ticket.event.title,
+        dateISO: ticket.event.dateISO,
+        venue: ticket.event.venue,
+      },
+    });
+  }
+
+  const usedAt = new Date();
+
+  const updated = await db.ticket.update({
+    where: { id: ticket.id },
+    data: {
+      status: TicketStatus.USED,
+      usedAt,
+    },
+    include: {
+      event: true,
+    },
+  });
+
+  await appendTicketScanLog({
+    ticketCode: updated.ticketCode,
+    status: "USED",
+    agentName,
+    usedAtISO: usedAt.toISOString(),
+  });
+
+  return res.json({
+    status: "USED" satisfies VerifyStatus,
+    ticketCode: updated.ticketCode,
+    usedAt,
+    event: {
+      title: updated.event.title,
+      dateISO: updated.event.dateISO,
+      venue: updated.event.venue,
+    },
   });
 }
 

@@ -127,6 +127,10 @@ export function ScanPage() {
   const [state, setState] = useState<ScreenState>(code ? { kind: "loading", code } : { kind: "idle" });
   const [autoNext, setAutoNext] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [staffPin, setStaffPin] = useState("");
+  const [agentName, setAgentName] = useState("");
+  const [useLoading, setUseLoading] = useState(false);
+  const [useError, setUseError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = code ? `Scan ${code} | Celewe Events` : "Scan | Celewe Events";
@@ -195,6 +199,49 @@ export function ScanPage() {
 
     playStatusTone(state.result.status);
   }, [soundEnabled, state]);
+
+  async function handleMarkUsed() {
+    if (state.kind !== "loaded") {
+      return;
+    }
+
+    const codeToUse = state.result.ticketCode;
+
+    if (!staffPin.trim()) {
+      setUseError("Staff PIN is required.");
+      return;
+    }
+
+    setUseLoading(true);
+    setUseError(null);
+
+    try {
+      const response = await fetch("/api/tickets/use", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: codeToUse,
+          pin: staffPin.trim(),
+          agentName: agentName.trim(),
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as VerifyResponse & { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Unable to mark ticket as used");
+      }
+
+      setState({ kind: "loaded", result: payload });
+      setStaffPin("");
+    } catch (error) {
+      setUseError(error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setUseLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#120d0e] text-white px-4 py-10 sm:px-6 lg:px-8">
@@ -277,6 +324,31 @@ export function ScanPage() {
                     alt={`QR for ${state.result.ticketCode}`}
                     className="mx-auto mt-4 h-44 w-44 rounded border border-white/20 bg-white p-2"
                   />
+
+                  <div className="mx-auto mt-6 max-w-md space-y-3 text-left">
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">Staff Validation</p>
+                    <input
+                      value={agentName}
+                      onChange={(event) => setAgentName(event.target.value)}
+                      placeholder="Agent name (optional)"
+                      className="w-full border border-white/20 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
+                    />
+                    <input
+                      type="password"
+                      value={staffPin}
+                      onChange={(event) => setStaffPin(event.target.value)}
+                      placeholder="Staff PIN"
+                      className="w-full border border-white/20 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
+                    />
+                    <button
+                      onClick={handleMarkUsed}
+                      disabled={useLoading}
+                      className="w-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {useLoading ? "Marking..." : "Mark As Used"}
+                    </button>
+                    {useError && <p className="text-xs text-red-300">{useError}</p>}
+                  </div>
                 </div>
               )}
 
