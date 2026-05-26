@@ -3,8 +3,9 @@ import { generateTicketQrPngBuffer } from "./qr";
 
 type TicketEmailItem = {
   ticketCode: string;
-  qrImageUrl: string;
-  scanUrl: string;
+  qrImageUrl?: string;
+  scanUrl?: string;
+  qrUrl?: string;
 };
 
 type TicketEmailPayload = {
@@ -162,25 +163,34 @@ async function buildTicketsPdfBase64(payload: TicketEmailPayload) {
 function buildHtml(payload: TicketEmailPayload) {
   const ticketRows = payload.tickets
     .map(
-      (ticket, index) => `
+      (ticket, index) => {
+        const scanLink = ticket.scanUrl ?? ticket.qrUrl ?? "";
+
+        return `
         <tr>
           <td style="padding:10px 0;border-bottom:1px solid #eee;">Ticket ${index + 1}</td>
           <td style="padding:10px 0;border-bottom:1px solid #eee;font-weight:700;">${ticket.ticketCode}</td>
-          <td style="padding:10px 0;border-bottom:1px solid #eee;"><a href="${ticket.scanUrl}">Open scan link</a></td>
+          <td style="padding:10px 0;border-bottom:1px solid #eee;"><a href="${scanLink}">Open scan link</a></td>
         </tr>
-      `,
+      `;
+      },
     )
     .join("");
 
   const qrBlocks = payload.tickets
     .map(
-      (ticket, index) => `
+      (ticket, index) => {
+        const scanLink = ticket.scanUrl ?? ticket.qrUrl ?? "";
+        const imageUrl = ticket.qrImageUrl ?? ticket.qrUrl ?? "";
+
+        return `
         <div style="margin:0 0 20px;padding:14px;border:1px solid #eee;border-radius:8px;">
           <div style="font-weight:700;margin:0 0 10px;">Ticket ${index + 1}: ${ticket.ticketCode}</div>
-          <img src="${ticket.qrImageUrl}" alt="QR ${ticket.ticketCode}" style="display:block;width:220px;max-width:100%;height:auto;border:1px solid #ddd;padding:8px;background:#fff;" />
-          <div style="margin-top:8px;font-size:12px;color:#666;">If image is blocked, use: <a href="${ticket.scanUrl}">${ticket.scanUrl}</a></div>
+          <img src="${imageUrl}" alt="QR ${ticket.ticketCode}" style="display:block;width:220px;max-width:100%;height:auto;border:1px solid #ddd;padding:8px;background:#fff;" />
+          <div style="margin-top:8px;font-size:12px;color:#666;">If image is blocked, use: <a href="${scanLink}">${scanLink}</a></div>
         </div>
-      `,
+      `;
+      },
     )
     .join("");
 
