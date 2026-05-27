@@ -125,7 +125,7 @@ export function ScanPage() {
   }, [search]);
 
   const [state, setState] = useState<ScreenState>(code ? { kind: "loading", code } : { kind: "idle" });
-  const [autoNext, setAutoNext] = useState(true);
+  const [autoNext, setAutoNext] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [staffPin, setStaffPin] = useState("");
   const [agentName, setAgentName] = useState("");
