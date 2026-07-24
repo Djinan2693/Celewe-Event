@@ -10,6 +10,7 @@ datasource db {
 
 enum OrderStatus {
   PENDING
+  PENDING_PAYMENT
   PAID
   CANCELLED
   REFUNDED

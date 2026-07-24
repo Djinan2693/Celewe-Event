@@ -1,6 +1,6 @@
 import {
   IMG_EVENT_FRENCH_KISS,
-  IMG_EVENT_MULUKUKU,
+  IMG_EVENT_DEJA_VU,
 } from "@/assets/images";
 
 export const events = [
@@ -33,33 +33,33 @@ export const events = [
     sold_out: false
   },
   {
-    id: "dj-mulukuku-manila",
-    slug: "dj-mulukuku-manila",
-    title: "DJ Mulukuku Manila",
-    date: "August 8, 2026",
-    time: "11:00 PM",
-    startDateISO: "2026-08-08T23:00:00+08:00",
-    endDateISO: "2026-08-09T04:00:00+08:00",
-    venue: "Stratosphere Events Space, Century Mall, Makati",
-    venueName: "Stratosphere Events Space",
-    venueAddress: "Century Mall, Makati, Metro Manila",
-    category: "VIP",
-    price: "₱1,500",
-    priceAmount: 1500,
+    id: "deja-vu-party",
+    slug: "deja-vu-party",
+    title: "Déjà-Vu Party",
+    date: "August 29, 2026",
+    time: "7:00 PM – 2:00 AM",
+    startDateISO: "2026-08-29T19:00:00+08:00",
+    endDateISO: "2026-08-30T02:00:00+08:00",
+    venue: "UG Lounge, Makati",
+    venueName: "UG Lounge",
+    venueAddress: "UG Lounge, Makati, Metro Manila",
+    category: "Party",
+    price: "₱1,000",
+    priceAmount: 1000,
     currency: "PHP",
     feeNote: "No additional online booking fee. VAT may apply if required by law.",
     included: [
-      "General admission to DJ Mulukuku Manila",
-      "Live set access and event floor entry",
-      "Priority check-in lane",
+      "General admission to the Déjà-Vu Party",
+      "Live sets by Arnaukei and DJ Noah",
+      "Event floor entry",
       "Digital QR e-ticket sent by email",
     ],
     paddlePriceId:
-      import.meta.env.VITE_PADDLE_PRICE_DJ_MULUKUKU_MANILA
+      import.meta.env.VITE_PADDLE_PRICE_DEJA_VU
       ?? import.meta.env.VITE_PADDLE_PRICE_NUIT_BLANCHE
       ?? "",
-    image: IMG_EVENT_MULUKUKU,
-    description: "DJ Mulukuku live in Manila for an independence-themed night at Stratosphere Events Space.",
+    image: IMG_EVENT_DEJA_VU,
+    description: "Cèlewé Events presents the Déjà-Vu Party at UG Lounge Makati, featuring Arnaukei and DJ Noah. Reservations: 09771008568.",
     ticketLink: "#",
     sold_out: false
   }

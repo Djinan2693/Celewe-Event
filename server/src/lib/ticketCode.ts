@@ -4,6 +4,7 @@ import { db } from "./db";
 const EVENT_CODE_PREFIXES: Record<string, string> = {
   "french-kiss-night": "FK",
   "dj-mulukuku-manila": "DM",
+  "deja-vu-party": "DV",
 };
 
 const RANDOM_SUFFIX_LENGTH = 4;

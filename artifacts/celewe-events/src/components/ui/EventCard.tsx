@@ -22,7 +22,7 @@ interface EventCardProps {
 
 export function EventCard({ event }: EventCardProps) {
   return (
-    <div className="group relative overflow-hidden bg-card border border-border/50 transition-all duration-500 hover:border-primary/50">
+    <div className="group relative h-full flex flex-col overflow-hidden bg-card border border-border/50 transition-all duration-500 hover:border-primary/50">
       <div className="aspect-[4/3] overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent z-10" />
         <img 
@@ -43,8 +43,8 @@ export function EventCard({ event }: EventCardProps) {
         </div>
       </div>
       
-      <div className="p-6">
-        <div className="flex flex-col gap-4">
+      <div className="p-6 flex-1 flex flex-col">
+        <div className="flex flex-col gap-4 flex-1">
           <div>
             <h3 className="font-heading text-2xl mb-3 group-hover:text-primary transition-colors">{event.title}</h3>
             
@@ -64,7 +64,7 @@ export function EventCard({ event }: EventCardProps) {
             {event.description}
           </p>
           
-          <div className="mt-4 pt-4 border-t border-border/50">
+          <div className="mt-auto pt-4 border-t border-border/50">
             <Link href={`/events/${event.slug}`} className="block">
               <Button 
                 variant="ghost" 

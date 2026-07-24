@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useSearch } from "wouter";
-import { Calendar, MapPin, Clock, ArrowLeft, CreditCard, Smartphone, Zap, QrCode } from "lucide-react";
+import React, { useState } from "react";
+import { useParams, Link } from "wouter";
+import { Calendar, MapPin, Clock, ArrowLeft, Smartphone, Zap, QrCode, Send, CheckCircle2, Phone } from "lucide-react";
 import { events } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,26 +9,23 @@ import { IMG_EVENT_FRENCH_KISS } from "@/assets/images";
 import { GalleryGrid } from "@/components/GalleryGrid";
 import { frenchKissGallery } from "@/data/frenchKissGallery";
 
-type CreatePaypalOrderResponse = {
-  paypalOrderId: string;
-  localOrderId: string;
-  approvalUrl?: string | null;
-};
+const RESERVATION_SUCCESS_MESSAGE =
+  "Your reservation has been received. Our team will contact you shortly with payment instructions.";
 
 export function EventDetail() {
   const { slug } = useParams();
-  const search = useSearch();
-  const query = useMemo(() => new URLSearchParams(search), [search]);
   const event = events.find(e => e.slug === slug);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [captureLoading, setCaptureLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [reservationDone, setReservationDone] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
     qty: 1,
+    website: "", // honeypot — real users leave this empty
   });
 
   if (!event) {
@@ -46,18 +43,20 @@ export function EventDetail() {
   const eventSlug = event.slug;
   const orderTotal = event.priceAmount * form.qty;
 
-  async function startPaypalCheckout() {
+  async function submitReservation() {
     setFeedbackMessage(null);
+    setIsError(false);
 
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.phone.trim()) {
-      setFeedbackMessage("Please complete all buyer details before checkout.");
+      setIsError(true);
+      setFeedbackMessage("Please complete all fields before reserving.");
       return;
     }
 
-    setCheckoutLoading(true);
+    setSubmitting(true);
 
     try {
-      const response = await fetch("/api/paypal/create-order", {
+      const response = await fetch("/api/orders/reserve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,74 +65,36 @@ export function EventDetail() {
           lastName: form.lastName,
           email: form.email,
           phone: form.phone,
-          qty: form.qty,
+          quantity: form.qty,
+          website: form.website,
         }),
       });
 
-      const payload = (await response.json()) as CreatePaypalOrderResponse & { error?: string; errors?: string[] };
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; errors?: string[] }
+        | null;
 
-      if (!response.ok) {
-        setFeedbackMessage(payload.error ?? payload.errors?.join(" ") ?? "Could not create PayPal order.");
+      if (!response.ok || !payload?.ok) {
+        setIsError(true);
+        setFeedbackMessage(
+          payload?.error ??
+            payload?.errors?.join(" ") ??
+            "We couldn't process your reservation. Please try again or contact us at 09771008568.",
+        );
         return;
       }
 
-      if (!payload.approvalUrl) {
-        setFeedbackMessage("PayPal approval link is missing.");
-        return;
-      }
-
-      window.location.href = payload.approvalUrl;
+      setReservationDone(true);
+      setFeedbackMessage(RESERVATION_SUCCESS_MESSAGE);
     } catch {
-      setFeedbackMessage("Network error while creating PayPal order.");
+      setIsError(true);
+      setFeedbackMessage(
+        "Network error. Please check your connection and try again, or contact us at 09771008568.",
+      );
     } finally {
-      setCheckoutLoading(false);
+      setSubmitting(false);
     }
   }
-
-  useEffect(() => {
-    const token = query.get("token");
-    const paypalStatus = query.get("paypal");
-
-    if (!token || paypalStatus !== "success") {
-      if (paypalStatus === "cancel") {
-        setFeedbackMessage("PayPal payment was cancelled.");
-      }
-      return;
-    }
-
-    let active = true;
-    setCaptureLoading(true);
-    setFeedbackMessage("Finalizing PayPal payment...");
-
-    fetch("/api/paypal/capture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paypalOrderId: token }),
-    })
-      .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        if (!response.ok) {
-          throw new Error(payload?.error ?? "Could not capture PayPal payment");
-        }
-        if (active) {
-          setFeedbackMessage("Payment captured successfully. Your tickets are now active.");
-        }
-      })
-      .catch((error: Error) => {
-        if (active) {
-          setFeedbackMessage(error.message);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setCaptureLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [query]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -244,7 +205,7 @@ export function EventDetail() {
                 ))}
               </ul>
               <p className="text-sm text-muted-foreground mt-4">
-                Ticket delivery: After payment, your QR e-ticket is sent to your email and can be scanned at venue entry.
+                Ticket delivery: Once our team confirms your payment, your official QR e-ticket is sent to your email and can be scanned at venue entry.
               </p>
             </div>
 
@@ -274,42 +235,59 @@ export function EventDetail() {
                 <div className="text-xs text-muted-foreground mt-2">Order total: {event.currency} {orderTotal.toLocaleString()}</div>
               </div>
 
-              <div className="space-y-3 mb-6">
-                <input
-                  value={form.firstName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
-                  placeholder="First name"
-                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
-                />
-                <input
-                  value={form.lastName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
-                  placeholder="Last name"
-                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
-                />
-                <input
-                  value={form.email}
-                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                  placeholder="Email"
-                  type="email"
-                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
-                />
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Phone"
-                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
-                />
-                <input
-                  value={form.qty}
-                  onChange={(e) => setForm((prev) => ({ ...prev, qty: Math.max(1, Math.min(20, Number(e.target.value) || 1)) }))}
-                  placeholder="Quantity"
-                  type="number"
-                  min={1}
-                  max={20}
-                  className="w-full bg-background border border-border/50 px-3 py-2 text-sm"
-                />
-              </div>
+              {!reservationDone && (
+                <div className="space-y-3 mb-6">
+                  <input
+                    value={form.firstName}
+                    onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
+                    placeholder="First name"
+                    disabled={submitting}
+                    className="w-full bg-background border border-border/50 px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  <input
+                    value={form.lastName}
+                    onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
+                    placeholder="Last name"
+                    disabled={submitting}
+                    className="w-full bg-background border border-border/50 px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  <input
+                    value={form.email}
+                    onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                    placeholder="Email"
+                    type="email"
+                    disabled={submitting}
+                    className="w-full bg-background border border-border/50 px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  <input
+                    value={form.phone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Phone / WhatsApp"
+                    disabled={submitting}
+                    className="w-full bg-background border border-border/50 px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  <input
+                    value={form.qty}
+                    onChange={(e) => setForm((prev) => ({ ...prev, qty: Math.max(1, Math.min(20, Number(e.target.value) || 1)) }))}
+                    placeholder="Quantity"
+                    type="number"
+                    min={1}
+                    max={20}
+                    disabled={submitting}
+                    className="w-full bg-background border border-border/50 px-3 py-2 text-sm disabled:opacity-50"
+                  />
+                  {/* Honeypot: hidden from real users, catches bots */}
+                  <input
+                    type="text"
+                    value={form.website}
+                    onChange={(e) => setForm((prev) => ({ ...prev, website: e.target.value }))}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="hidden"
+                  />
+                </div>
+              )}
 
               <div className="space-y-5 mb-8">
                 <div className="flex items-start gap-4">
@@ -335,37 +313,54 @@ export function EventDetail() {
                 </div>
               </div>
 
-              <Button
-                onClick={startPaypalCheckout}
-                disabled={event.sold_out || checkoutLoading || captureLoading}
-                className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium disabled:opacity-50"
-              >
-                <CreditCard className="mr-2" size={18} />
-                {event.sold_out
-                  ? "Sold Out"
-                  : checkoutLoading
-                  ? "Creating PayPal order..."
-                  : captureLoading
-                  ? "Capturing payment..."
-                  : "Buy Ticket with PayPal"}
-              </Button>
-
-              {feedbackMessage && (
-                <p className="mt-3 text-xs text-white/70">{feedbackMessage}</p>
+              {!reservationDone && (
+                <Button
+                  onClick={submitReservation}
+                  disabled={event.sold_out || submitting}
+                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-none py-6 text-sm tracking-widest uppercase font-medium disabled:opacity-50"
+                >
+                  <Send className="mr-2" size={18} />
+                  {event.sold_out
+                    ? "Sold Out"
+                    : submitting
+                    ? "Sending reservation..."
+                    : "Reserve My Ticket"}
+                </Button>
               )}
 
-              {!event.sold_out && (
+              {feedbackMessage && (
+                <div
+                  className={`mt-3 flex items-start gap-2 text-xs ${
+                    isError ? "text-red-400" : "text-emerald-400"
+                  }`}
+                >
+                  {!isError && <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
+                  <p>{feedbackMessage}</p>
+                </div>
+              )}
+
+              {reservationDone && (
+                <a
+                  href="tel:09771008568"
+                  className="mt-4 flex items-center justify-center gap-2 text-white/70 hover:text-white text-xs border border-border/40 py-3 transition-colors"
+                >
+                  <Phone size={13} />
+                  <span>Urgent? Call us: 09771008568</span>
+                </a>
+              )}
+
+              {!event.sold_out && !reservationDone && (
                 <div className="mt-4 space-y-2 pt-4 border-t border-border/30">
                   <div className="flex items-center gap-2 text-white/40 text-xs">
-                    <CreditCard size={11} />
-                    <span>Secure payment via PayPal</span>
+                    <Smartphone size={11} />
+                    <span>No online payment — reserve now, our team contacts you</span>
                   </div>
                   <div className="flex items-center gap-2 text-white/40 text-xs">
                     <QrCode size={11} />
-                    <span>QR ticket sent to your email instantly</span>
+                    <span>QR e-ticket emailed once payment is confirmed</span>
                   </div>
                   <div className="flex items-center gap-2 text-white/40 text-xs">
-                    <Smartphone size={11} />
+                    <Zap size={11} />
                     <span>Show QR at entrance — no print needed</span>
                   </div>
                 </div>

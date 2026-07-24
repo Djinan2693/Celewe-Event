@@ -5,6 +5,12 @@ dist
 tmp
 out-tsc
 *.tsbuildinfo
+
+# deploy/build bundles (may contain .env secrets)
+*.zip
+
+# server-side generated previews / test artifacts
+server/previews/
 .expo
 .expo-shared
 

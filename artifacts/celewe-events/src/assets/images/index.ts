@@ -7,6 +7,7 @@ export const IMG_EVENT_FRENCH_KISS =
   "/images/frenchkiss.jpg";
 export const IMG_EVENT_NUIT_BLANCHE = "/images/Nuit Blanche.jpg";
 export const IMG_EVENT_MULUKUKU = "/images/mulukuku.jpg";
+export const IMG_EVENT_DEJA_VU = "/images/deja-vu.jpg";
 export const IMG_EVENT_CRIMSON_MASQUERADE = "/images/Crimson Masquerade.jpg";
 
 export const IMG_HOME_INTRO = "/images/vip-entrance.jpg";

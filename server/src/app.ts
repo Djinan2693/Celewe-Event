@@ -3,6 +3,7 @@ import { healthRouter } from "./routes/health";
 import { ordersRouter } from "./routes/orders";
 import { ticketsRouter } from "./routes/tickets";
 import { paypalRouter } from "./routes/paypal";
+import { adminRouter } from "./routes/admin";
 import { errorHandler } from "./middleware/error-handler";
 
 export function createApp() {
@@ -16,11 +17,13 @@ export function createApp() {
   app.use(ordersRouter);
   app.use(ticketsRouter);
   app.use(paypalRouter);
+  app.use(adminRouter);
 
   app.use("/api", healthRouter);
   app.use("/api", ordersRouter);
   app.use("/api", ticketsRouter);
   app.use("/api", paypalRouter);
+  app.use("/api", adminRouter);
 
   app.use((_req, res) => {
     res.status(404).json({

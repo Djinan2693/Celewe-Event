@@ -21,6 +21,7 @@ const ProductFrenchKissNight = lazy(() => import("@/pages/ProductFrenchKissNight
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess").then(m => ({ default: m.PaymentSuccess })));
 const ScanPage    = lazy(() => import("@/pages/Scan").then(m => ({ default: m.ScanPage })));
 const AdminPage   = lazy(() => import("@/pages/Admin").then(m => ({ default: m.AdminPage })));
+const AdminReservations = lazy(() => import("@/pages/AdminReservations").then(m => ({ default: m.AdminReservations })));
 const CookiePolicy = lazy(() => import("@/pages/CookiePolicy").then(m => ({ default: m.CookiePolicy })));
 const ServerError = lazy(() => import("@/pages/ServerError").then(m => ({ default: m.ServerError })));
 
@@ -61,6 +62,7 @@ function Router() {
           <Route path="/payment/success" component={PaymentSuccess} />
           <Route path="/scan"            component={ScanPage} />
           <Route path="/admin/tickets"   component={AdminPage} />
+          <Route path="/admin/reservations" component={AdminReservations} />
           <Route path="/privacy"         component={Privacy} />
           <Route path="/terms"           component={Terms} />
           <Route path="/refund-policy"   component={RefundPolicy} />

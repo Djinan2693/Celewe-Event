@@ -9,7 +9,7 @@ import {
   verifyPaypalWebhookSignature,
 } from "../lib/paypal";
 import { sendTicketEmail } from "../lib/email";
-import { buildTicketScanUrl } from "../lib/qr";
+import { buildTicketQrImageUrl, buildTicketScanUrl } from "../lib/qr";
 
 type CreatePaypalOrderBody = {
   eventSlug?: unknown;
@@ -178,7 +178,8 @@ async function finalizeLocalOrderAndTickets(paypalOrderId: string) {
         totalAmountPhp: orderWithTickets.amountPHP,
         tickets: orderWithTickets.tickets.map((ticket) => ({
           ticketCode: ticket.ticketCode,
-          qrUrl: buildTicketScanUrl(ticket.ticketCode),
+          qrImageUrl: buildTicketQrImageUrl(ticket.ticketCode),
+          scanUrl: buildTicketScanUrl(ticket.ticketCode),
         })),
       });
     }

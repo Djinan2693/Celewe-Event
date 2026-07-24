@@ -2,27 +2,36 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const seededEvent = {
-  slug: "dj-mulukuku-manila",
-  title: "DJ Mulukuku Manila",
-  dateISO: "2026-06-20T21:00:00.000Z",
-  venue: "Manila",
-  pricePHP: 1500,
-  currency: "PHP",
-};
+const seededEvents = [
+  {
+    slug: "french-kiss-night",
+    title: "French Kiss Night",
+    dateISO: "2026-04-04T22:00:00+08:00",
+    venue: "The Stratosphere — 4/F Century City Mall, Makati",
+    pricePHP: 3000,
+    currency: "PHP",
+  },
+  {
+    slug: "deja-vu-party",
+    title: "Déjà-Vu Party",
+    dateISO: "2026-08-29T19:00:00+08:00",
+    venue: "UG Lounge, Makati",
+    pricePHP: 1000,
+    currency: "PHP",
+  },
+];
 
 async function main() {
-  await prisma.event.deleteMany({
-    where: {
-      slug: "french-kiss-night",
-    },
-  });
-
-  await prisma.event.upsert({
-    where: { slug: seededEvent.slug },
-    update: seededEvent,
-    create: seededEvent,
-  });
+  // Note: the retired "dj-mulukuku-manila" event is intentionally left in place
+  // because existing orders/tickets reference it (onDelete: Restrict). It is no
+  // longer listed on the site, so it cannot be reserved.
+  for (const event of seededEvents) {
+    await prisma.event.upsert({
+      where: { slug: event.slug },
+      update: event,
+      create: event,
+    });
+  }
 }
 
 main()
