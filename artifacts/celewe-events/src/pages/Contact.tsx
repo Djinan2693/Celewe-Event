@@ -28,8 +28,7 @@ const formSchema = z.object({
 
 export function Contact() {
   const { toast } = useToast();
-  const web3FormsAccessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY as string | undefined;
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,45 +40,29 @@ export function Contact() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!web3FormsAccessKey) {
-      toast({
-        title: "Configuration Required",
-        description: "Web3Forms key is missing. Set VITE_WEB3FORMS_ACCESS_KEY to enable contact form delivery.",
-        className: "bg-primary text-white border-none rounded-none",
-      });
-      return;
-    }
-
     try {
-      const response = await fetch("https://api.web3forms.com/submit", {
+      const response = await fetch("/api/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          access_key: web3FormsAccessKey,
-          from_name: "Cèlewé Events Contact Form",
-          subject: "New contact inquiry from celeweevent.com",
-          website: "https://celeweevent.com",
           name: values.name,
           email: values.email,
-          phone: values.phone || "Not provided",
+          phone: values.phone || "",
           message: values.message,
-          replyto: values.email,
-          botcheck: "",
         }),
       });
 
-      const result = await response.json();
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; errors?: string[] }
+        | null;
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Failed to send message");
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error ?? result?.errors?.join(" ") ?? "Failed to send message");
       }
 
       toast({
         title: "Message Sent",
-        description: "Your message was sent successfully to contact@celeweevent.com.",
+        description: "Your message was sent to contact@celeweevent.com. We'll get back to you soon.",
         className: "bg-primary text-white border-none rounded-none",
       });
       form.reset();
