@@ -1,7 +1,7 @@
 export const IMG_LOGO = "/logo.png";
 
 export const IMG_SEO_OG_DEFAULT =
-  "/opengraph.jpg";
+  "/og-logo.jpg";
 
 export const IMG_EVENT_FRENCH_KISS =
   "/images/frenchkiss.jpg";
