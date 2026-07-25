@@ -45,7 +45,7 @@ function StatusBadge({ status }: { status: string }) {
       }`}
     >
       {paid ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-      {status}
+      {paid ? "COMPLETED" : "PENDING"}
     </span>
   );
 }
@@ -55,7 +55,7 @@ export function AdminReservations() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);

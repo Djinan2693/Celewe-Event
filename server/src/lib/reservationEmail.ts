@@ -96,6 +96,7 @@ async function sendEmail(params: {
         text: params.text,
         ...(params.replyTo ? { reply_to: params.replyTo } : {}),
       }),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {

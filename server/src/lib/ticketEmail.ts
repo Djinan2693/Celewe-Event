@@ -171,6 +171,7 @@ export async function sendDigitalTicketEmail(
         text,
         attachments,
       }),
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!response.ok) {

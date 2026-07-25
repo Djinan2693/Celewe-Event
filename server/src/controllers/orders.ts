@@ -188,7 +188,10 @@ export async function createReservation(req: Request, res: Response, next: NextF
     // is confirmed manually.
 
     const labels = getEventLabels(event.slug, event.dateISO);
-    const emails = await sendReservationEmails({
+    // Send the notification emails in the background: the customer gets an
+    // instant confirmation and the request doesn't hold server resources
+    // waiting on the email API (which reduces load and avoids timeouts).
+    void sendReservationEmails({
       orderId: order.id,
       event: {
         title: event.title,
@@ -200,6 +203,8 @@ export async function createReservation(req: Request, res: Response, next: NextF
       buyer: { firstName, lastName, email, phone },
       quantity,
       totalPHP,
+    }).catch((err) => {
+      console.error("Reservation emails failed:", err);
     });
 
     return res.status(201).json({
@@ -208,7 +213,7 @@ export async function createReservation(req: Request, res: Response, next: NextF
       status: OrderStatus.PENDING_PAYMENT,
       amountPHP: totalPHP,
       currency: event.currency,
-      emails,
+      emails: { queued: true },
     });
   } catch (error) {
     return next(error);
