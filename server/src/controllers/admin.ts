@@ -223,3 +223,37 @@ export async function resendTicket(req: Request, res: Response, next: NextFuncti
     return next(error);
   }
 }
+
+// Permanently delete a reservation (and any tickets it issued). Intended for
+// cleaning up test/erroneous entries. Tickets are removed first so the FK
+// (onDelete: Restrict) constraint is satisfied.
+export async function deleteReservation(req: Request, res: Response, next: NextFunction) {
+  if (!isStaffPinValid(pinFrom(req))) {
+    return res.status(401).json({ ok: false, error: "Invalid staff pin" });
+  }
+
+  const id = String(req.params.id);
+
+  try {
+    const order = await db.order.findUnique({
+      where: { id },
+      include: { tickets: true },
+    });
+    if (!order) {
+      return res.status(404).json({ ok: false, error: "Reservation not found" });
+    }
+
+    const ticketsRemoved = order.tickets.length;
+
+    await db.$transaction(async (tx) => {
+      if (ticketsRemoved > 0) {
+        await tx.ticket.deleteMany({ where: { orderId: id } });
+      }
+      await tx.order.delete({ where: { id } });
+    });
+
+    return res.status(200).json({ ok: true, deleted: id, ticketsRemoved });
+  } catch (error) {
+    return next(error);
+  }
+}

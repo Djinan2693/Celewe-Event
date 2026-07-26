@@ -8,6 +8,7 @@ import {
   LogOut,
   AlertCircle,
   Ticket as TicketIcon,
+  Trash2,
 } from "lucide-react";
 
 interface Reservation {
@@ -115,6 +116,17 @@ export function AdminReservations() {
 
   async function resendTicket(r: Reservation) {
     await runAction(r.id, `/api/admin/orders/${r.id}/resend`, "Ticket re-sent");
+  }
+
+  async function deleteReservation(r: Reservation) {
+    const warning =
+      r.ticketsIssued > 0
+        ? `\n\n⚠️ This reservation has ${r.ticketsIssued} issued ticket(s) — deleting will invalidate them.`
+        : "";
+    if (!window.confirm(`Delete reservation for ${r.firstName} ${r.lastName}? This cannot be undone.${warning}`)) {
+      return;
+    }
+    await runAction(r.id, `/api/admin/orders/${r.id}/delete`, "Deleted");
   }
 
   async function runAction(id: string, url: string, successLabel: string) {
@@ -270,6 +282,14 @@ export function AdminReservations() {
                           <Send size={14} /> Resend ticket
                         </button>
                       )}
+                      <button
+                        onClick={() => deleteReservation(r)}
+                        disabled={busyId === r.id}
+                        className="text-red-400/80 hover:text-red-400 text-xs px-2 py-1 flex items-center gap-1 disabled:opacity-50"
+                        title="Delete reservation"
+                      >
+                        <Trash2 size={13} /> Delete
+                      </button>
                       {msg && (
                         <span className={`text-xs text-right max-w-[260px] ${msg.error ? "text-red-400" : "text-green-400"}`}>
                           {msg.text}
