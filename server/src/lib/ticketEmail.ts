@@ -127,7 +127,7 @@ export async function sendDigitalTicketEmail(
         ${escapeHtml(RESERVATION_PHONE)}
       </p>
 
-      <p style="margin:0;">See you there,<br />CÈLÉWÉ Events</p>
+      <p style="margin:0;">See you there,<br />CÈLEWÉ Events</p>
     </div>
   `;
 
@@ -153,7 +153,7 @@ export async function sendDigitalTicketEmail(
     RESERVATION_PHONE,
     "",
     "See you there,",
-    "CÈLÉWÉ Events",
+    "CÈLEWÉ Events",
   ].join("\n");
 
   try {
@@ -164,7 +164,7 @@ export async function sendDigitalTicketEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `CÈLÉWÉ Events <${getFromEmail()}>`,
+        from: `CÈLEWÉ Events <${getFromEmail()}>`,
         to: [payload.to],
         subject: `Your ticket${multiple ? "s" : ""} — ${payload.event.title}`,
         html,

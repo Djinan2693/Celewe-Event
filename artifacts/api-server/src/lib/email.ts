@@ -110,7 +110,7 @@ function buildTicketEmailHtml(data: TicketEmailData): string {
           <tr>
             <td style="background:#1a1012;padding:36px 40px 28px;text-align:center;border-bottom:1px solid rgba(151,12,16,0.3);">
               <p style="margin:0;font-family:'Lexend',Arial,sans-serif;font-size:20px;font-weight:600;color:#ffffff;letter-spacing:0.18em;text-transform:uppercase;">
-                CÉLÉWÉ <span style="color:#970C10;">EVENTS</span>
+                CÈLEWÉ <span style="color:#970C10;">EVENTS</span>
               </p>
             </td>
           </tr>
@@ -205,7 +205,7 @@ function buildTicketEmailHtml(data: TicketEmailData): string {
           <!-- Footer -->
           <tr>
             <td style="background:#1a1012;padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.07);">
-              <p style="margin:0 0 6px;font-family:'Lexend',Arial,sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.15em;">CÉLÉWÉ EVENTS</p>
+              <p style="margin:0 0 6px;font-family:'Lexend',Arial,sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:0.15em;">CÈLEWÉ EVENTS</p>
               <p style="margin:0;color:rgba(255,255,255,0.2);font-size:12px;line-height:1.8;">
                 Manila's Premier VIP Experience Agency<br />
                 <a href="https://celeweevent.com" style="color:rgba(151,12,16,0.7);text-decoration:none;">celeweevent.com</a>
@@ -235,9 +235,9 @@ export async function sendTicketEmail(data: TicketEmailData): Promise<boolean> {
     const fromEmail = process.env.RESEND_FROM_EMAIL ?? "tickets@celeweevent.com";
     const ticketPlural = data.tickets.length > 1 ? "Tickets" : "Ticket";
     const { error } = await client.emails.send({
-      from: `Céléwé Events <${fromEmail}>`,
+      from: `Cèlewé Events <${fromEmail}>`,
       to: [data.to],
-      subject: `Your ${ticketPlural} — ${data.eventTitle} | Céléwé Events`,
+      subject: `Your ${ticketPlural} — ${data.eventTitle} | Cèlewé Events`,
       html: buildTicketEmailHtml(data),
     });
 

@@ -62,7 +62,7 @@ export function AdminReservations() {
   const [rowMessage, setRowMessage] = useState<Record<string, { text: string; error: boolean }>>({});
 
   useEffect(() => {
-    document.title = "Reservations — CÈLÉWÉ Events";
+    document.title = "Reservations — CÈLEWÉ Events";
   }, []);
 
   async function fetchReservations(all = showAll, currentPin = pin) {

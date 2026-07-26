@@ -8,7 +8,7 @@ export function Gallery() {
     <div className="min-h-screen">
       <SEO
         title="Gallery"
-        description="A visual archive of Manila's most exclusive evenings — Céléwé Events captured in light, atmosphere, and unforgettable detail."
+        description="A visual archive of Manila's most exclusive evenings — Cèlewé Events captured in light, atmosphere, and unforgettable detail."
         canonicalPath="/gallery"
       />
 
@@ -70,7 +70,7 @@ export function Gallery() {
               centered
             />
             <p className="text-white/50 mt-4 mb-8 max-w-md mx-auto">
-              Every great photo starts with showing up. Book your spot at the next Céléwé event.
+              Every great photo starts with showing up. Book your spot at the next Cèlewé event.
             </p>
             <a
               href="/events"

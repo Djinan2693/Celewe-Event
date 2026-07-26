@@ -7,7 +7,7 @@ export function Privacy() {
     <div className="pt-32 pb-24 md:pt-40 container max-w-[800px] mx-auto px-4 md:px-6">
       <SEO
         title="Privacy Policy"
-        description="Privacy Policy for CÉLÉWÉ Events detailing personal data collection, usage, retention, third parties, and user rights."
+        description="Privacy Policy for CÈLEWÉ Events detailing personal data collection, usage, retention, third parties, and user rights."
         canonicalPath="/privacy"
       />
       <SectionTitle 
@@ -22,7 +22,7 @@ export function Privacy() {
         
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">1. Information We Collect</h2>
         <p>
-          CÉLÉWÉ Events collects data needed to sell and deliver event tickets. This may include:
+          CÈLEWÉ Events collects data needed to sell and deliver event tickets. This may include:
         </p>
         <ul className="list-disc pl-6 mb-6 space-y-2">
           <li>Full name</li>

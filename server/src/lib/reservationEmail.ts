@@ -89,7 +89,7 @@ async function sendEmail(params: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `CÈLÉWÉ Events <${getFromEmail()}>`,
+        from: `CÈLEWÉ Events <${getFromEmail()}>`,
         to: [params.to],
         subject: params.subject,
         html: params.html,
@@ -116,7 +116,7 @@ function buildAdminEmail(payload: ReservationEmailPayload) {
   const { event, buyer, quantity, totalPHP, orderId } = payload;
   const fullName = `${buyer.firstName} ${buyer.lastName}`.trim();
 
-  const subject = `New ${event.title} Ticket Reservation - CÈLÉWÉ Events`;
+  const subject = `New ${event.title} Ticket Reservation - CÈLEWÉ Events`;
 
   const rows: Array<[string, string]> = [
     ["Event", event.title],
@@ -170,12 +170,12 @@ function buildCustomerEmail(payload: ReservationEmailPayload) {
   const { event, buyer, quantity, totalPHP } = payload;
   const contactEmail = getContactEmail();
 
-  const subject = `${event.title} Reservation Received - CÈLÉWÉ Events`;
+  const subject = `${event.title} Reservation Received - CÈLEWÉ Events`;
 
   const text = [
     `Hello ${buyer.firstName},`,
     "",
-    `Thank you for your reservation for ${event.title} by CÈLÉWÉ Events.`,
+    `Thank you for your reservation for ${event.title} by CÈLEWÉ Events.`,
     "",
     "We have received your ticket request.",
     "",
@@ -197,7 +197,7 @@ function buildCustomerEmail(payload: ReservationEmailPayload) {
     RESERVATION_PHONE,
     "",
     "Thank you,",
-    "CÈLÉWÉ Events",
+    "CÈLEWÉ Events",
   ].join("\n");
 
   const detailRows: Array<[string, string]> = [
@@ -213,7 +213,7 @@ function buildCustomerEmail(payload: ReservationEmailPayload) {
     <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#111;">
       <p style="margin:0 0 16px;">Hello ${escapeHtml(buyer.firstName)},</p>
       <p style="margin:0 0 16px;">
-        Thank you for your reservation for <strong>${escapeHtml(event.title)}</strong> by CÈLÉWÉ Events.
+        Thank you for your reservation for <strong>${escapeHtml(event.title)}</strong> by CÈLEWÉ Events.
       </p>
       <p style="margin:0 0 16px;">We have received your ticket request.</p>
 
@@ -242,7 +242,7 @@ function buildCustomerEmail(payload: ReservationEmailPayload) {
         ${escapeHtml(RESERVATION_PHONE)}
       </p>
 
-      <p style="margin:0;">Thank you,<br />CÈLÉWÉ Events</p>
+      <p style="margin:0;">Thank you,<br />CÈLEWÉ Events</p>
     </div>
   `;
 

@@ -1,4 +1,4 @@
-// Sends a contact-form inquiry to the CÈLÉWÉ inbox via the Resend HTTP API.
+// Sends a contact-form inquiry to the CÈLEWÉ inbox via the Resend HTTP API.
 
 export type ContactPayload = {
   name: string;
@@ -76,7 +76,7 @@ export async function sendContactEmail(payload: ContactPayload): Promise<boolean
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `CÈLÉWÉ Events <${getFromEmail()}>`,
+        from: `CÈLEWÉ Events <${getFromEmail()}>`,
         to: [getInboxEmail()],
         subject,
         html,

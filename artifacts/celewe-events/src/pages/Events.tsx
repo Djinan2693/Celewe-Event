@@ -19,7 +19,7 @@ export function Events() {
     <div className="flex flex-col pb-24">
       <SEO
         title="Upcoming Events"
-        description="Browse CÉLÉWÉ Events tickets with clear pricing, date and time, venue details, and what is included in each ticket."
+        description="Browse CÈLEWÉ Events tickets with clear pricing, date and time, venue details, and what is included in each ticket."
         canonicalPath="/events"
       />
       {/* Header */}
@@ -75,7 +75,7 @@ export function Events() {
             <div className="border border-border/40 p-6">
               <h2 className="font-heading text-2xl text-white mb-3">What We Sell</h2>
               <p className="text-muted-foreground leading-relaxed">
-                We sell event tickets for CÉLÉWÉ Events, including curated nightlife experiences, premium themed parties, and VIP entry access in Manila.
+                We sell event tickets for CÈLEWÉ Events, including curated nightlife experiences, premium themed parties, and VIP entry access in Manila.
               </p>
             </div>
             <div className="border border-primary/30 bg-primary/10 p-6">

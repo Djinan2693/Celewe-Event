@@ -53,7 +53,7 @@ router.post("/webhooks/paddle", async (req, res): Promise<void> => {
     const customerName = (customer.name as string) ?? "Guest";
 
     const eventId = (customData.eventId as string) ?? "unknown";
-    const eventTitle = (customData.eventTitle as string) ?? "Céléwé Event";
+    const eventTitle = (customData.eventTitle as string) ?? "Cèlewé Event";
     const eventDate = (customData.eventDate as string) ?? "";
     const eventVenue = (customData.eventVenue as string) ?? "";
 

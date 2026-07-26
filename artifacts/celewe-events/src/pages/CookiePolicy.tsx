@@ -7,7 +7,7 @@ export function CookiePolicy() {
     <div className="pt-32 pb-24 md:pt-40 container max-w-[800px] mx-auto px-4 md:px-6">
       <SEO
         title="Cookie Policy"
-        description="Cookie Policy for CÉLÉWÉ Events — how we use cookies, third-party services, and how you can manage your preferences."
+        description="Cookie Policy for CÈLEWÉ Events — how we use cookies, third-party services, and how you can manage your preferences."
         canonicalPath="/cookie-policy"
       />
       <SectionTitle
@@ -27,7 +27,7 @@ export function CookiePolicy() {
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">2. How We Use Cookies</h2>
         <p>
-          CÉLÉWÉ Events uses cookies to ensure the proper functioning of our website, remember your preferences, and understand how visitors use our platform. Specifically, cookies help us:
+          CÈLEWÉ Events uses cookies to ensure the proper functioning of our website, remember your preferences, and understand how visitors use our platform. Specifically, cookies help us:
         </p>
         <ul className="list-disc pl-6 mb-6 space-y-2">
           <li>Keep you logged in or maintain your cart/session during checkout</li>

@@ -10,13 +10,13 @@ export function Pricing() {
     <div className="pt-32 pb-24 md:pt-40 container max-w-[1000px] mx-auto px-4 md:px-6">
       <SEO
         title="Pricing"
-        description="Transparent ticket pricing in PHP for CÉLÉWÉ Events, including sample event ticket prices, delivery details, and fee notes."
+        description="Transparent ticket pricing in PHP for CÈLEWÉ Events, including sample event ticket prices, delivery details, and fee notes."
         canonicalPath="/pricing"
       />
 
       <SectionTitle
         title="Ticket Pricing"
-        subtitle="Clear pricing for CÉLÉWÉ Events ticket sales in Philippine Peso (PHP)."
+        subtitle="Clear pricing for CÈLEWÉ Events ticket sales in Philippine Peso (PHP)."
         className="mb-10"
       />
 

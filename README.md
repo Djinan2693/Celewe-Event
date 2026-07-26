@@ -1,4 +1,4 @@
-# CÉLÉWÉ Events
+# CÈLEWÉ Events
 
 ## Compliance Note
 

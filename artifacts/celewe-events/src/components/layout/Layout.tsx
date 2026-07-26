@@ -27,7 +27,7 @@ const rootStructuredData = {
     {
       "@type": "Organization",
       "@id": "https://celeweevent.com/#organization",
-      name: "CÉLÉWÉ Events",
+      name: "CÈLEWÉ Events",
       legalName: "[Legal Entity Name Placeholder]",
       url: "https://celeweevent.com",
       email: "contact@celeweevent.com",
@@ -47,7 +47,7 @@ const rootStructuredData = {
       "@type": "WebSite",
       "@id": "https://celeweevent.com/#website",
       url: "https://celeweevent.com",
-      name: "CÉLÉWÉ Events",
+      name: "CÈLEWÉ Events",
       publisher: { "@id": "https://celeweevent.com/#organization" },
       potentialAction: {
         "@type": "SearchAction",

@@ -8,7 +8,7 @@ export function About() {
     <div className="flex flex-col">
       <SEO
         title="Our Story"
-        description="Céléwé Events was born from a desire to redefine Manila's nightlife — a premier experience agency specializing in high-end VIP events, private soirées, and unforgettable moments."
+        description="Cèlewé Events was born from a desire to redefine Manila's nightlife — a premier experience agency specializing in high-end VIP events, private soirées, and unforgettable moments."
         canonicalPath="/about"
       />
       {/* Hero */}
@@ -27,7 +27,7 @@ export function About() {
               transition={{ duration: 0.6 }}
             >
               <p className="mb-6">
-                Céléwé Event was born from a desire to elevate Manila's nightlife landscape. We saw a gap between standard club nights and truly immersive VIP experiences—so we decided to bridge it.
+                Cèlewé Event was born from a desire to elevate Manila's nightlife landscape. We saw a gap between standard club nights and truly immersive VIP experiences—so we decided to bridge it.
               </p>
               <p>
                 As a premier experience agency, we specialize in high-end galas, private soirées, and exclusive nightlife activations. We don't just throw parties; we curate environments where every detail serves a purpose.
@@ -42,7 +42,7 @@ export function About() {
                 From securing the city's most coveted venues to enforcing strict stylistic curation, we combine bold design with flawless execution.
               </p>
               <p>
-                Whether it's the thematic grandeur of the 'French Kiss' gala or the pristine elegance of 'Nuit Blanche', Céléwé creates moments that resonate deeply within the elite community.
+                Whether it's the thematic grandeur of the 'French Kiss' gala or the pristine elegance of 'Nuit Blanche', Cèlewé creates moments that resonate deeply within the elite community.
               </p>
             </motion.div>
           </div>
@@ -53,7 +53,7 @@ export function About() {
       <section className="py-24 md:py-32 bg-card/30">
         <div className="container max-w-[1200px] mx-auto px-4 md:px-6">
           <SectionTitle 
-            title="The Céléwé Standard"
+            title="The Cèlewé Standard"
             centered
             className="mb-20"
           />

@@ -7,7 +7,7 @@ export function Terms() {
     <div className="pt-32 pb-24 md:pt-40 container max-w-[800px] mx-auto px-4 md:px-6">
       <SEO
         title="Terms & Conditions"
-        description="Terms and Conditions for purchasing CÉLÉWÉ Events tickets, including ticket usage rules, delivery, and fraud or chargeback policy."
+        description="Terms and Conditions for purchasing CÈLEWÉ Events tickets, including ticket usage rules, delivery, and fraud or chargeback policy."
         canonicalPath="/terms"
       />
       <SectionTitle 
@@ -22,7 +22,7 @@ export function Terms() {
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">1. Merchant Identity</h2>
         <p>
-          This website is operated by <strong>CÉLÉWÉ Events</strong> (<strong>legal entity name placeholder: [Insert Legal Entity Name]</strong>). By purchasing from this site, you agree to these Terms & Conditions.
+          This website is operated by <strong>CÈLEWÉ Events</strong> (<strong>legal entity name placeholder: [Insert Legal Entity Name]</strong>). By purchasing from this site, you agree to these Terms & Conditions.
         </p>
         <p className="mt-4">
           Registered address placeholder: <strong>[Insert Legal Business Address]</strong>
@@ -33,7 +33,7 @@ export function Terms() {
         
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">2. What We Sell</h2>
         <p>
-          We sell <strong>event tickets</strong> for CÉLÉWÉ Events. Ticket availability, inclusions, and prices are shown on each event page and at checkout.
+          We sell <strong>event tickets</strong> for CÈLEWÉ Events. Ticket availability, inclusions, and prices are shown on each event page and at checkout.
         </p>
         
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">3. Ticket Usage Rules</h2>
@@ -42,13 +42,13 @@ export function Terms() {
         </p>
         <ul className="list-disc pl-6 mb-6 space-y-2">
           <li>Resale, transfer for profit, or unauthorized duplication of tickets is prohibited.</li>
-          <li>CÉLÉWÉ Events reserves the right of admission for safety, capacity, and venue policy compliance.</li>
+          <li>CÈLEWÉ Events reserves the right of admission for safety, capacity, and venue policy compliance.</li>
           <li>Guests removed for misconduct, intoxication, or prohibited behavior are not entitled to a refund.</li>
         </ul>
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">4. Age & Venue Rules</h2>
         <p>
-          Unless otherwise stated on the event page, CÉLÉWÉ Events are <strong>18+</strong>. Some venues may require 21+ per local licensing conditions. You are responsible for checking event-specific age policies before purchase.
+          Unless otherwise stated on the event page, CÈLEWÉ Events are <strong>18+</strong>. Some venues may require 21+ per local licensing conditions. You are responsible for checking event-specific age policies before purchase.
         </p>
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">5. Delivery Method</h2>

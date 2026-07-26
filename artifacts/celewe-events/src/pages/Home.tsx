@@ -62,7 +62,7 @@ export function Home() {
     <div className="flex flex-col">
       <SEO
         title="Manila's Elite Nightlife & VIP Events"
-        description="CÉLÉWÉ Events sells event tickets for premium nightlife experiences in Manila. All tickets are delivered as digital e-tickets by email."
+        description="CÈLEWÉ Events sells event tickets for premium nightlife experiences in Manila. All tickets are delivered as digital e-tickets by email."
         canonicalPath="/"
       />
       {/* Hero Section */}

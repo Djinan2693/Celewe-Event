@@ -94,7 +94,7 @@ export function ProductFrenchKissNight() {
     description: event.description,
     url: "https://celeweevent.com/product/french-kiss-night",
     image: event.image,
-    brand: { "@type": "Brand", name: "CÉLÉWÉ Events" },
+    brand: { "@type": "Brand", name: "CÈLEWÉ Events" },
     offers: {
       "@type": "Offer",
       url: "https://celeweevent.com/product/french-kiss-night",
@@ -104,14 +104,14 @@ export function ProductFrenchKissNight() {
       availability: event.sold_out
         ? "https://schema.org/SoldOut"
         : "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: "CÉLÉWÉ Events" },
+      seller: { "@type": "Organization", name: "CÈLEWÉ Events" },
     },
   };
 
   return (
     <>
       <SEO
-        title="French Kiss Night — VIP Entry Pass | CÉLÉWÉ Events"
+        title="French Kiss Night — VIP Entry Pass | CÈLEWÉ Events"
         description={`Buy your ticket to French Kiss Night — ${event.date} at ${event.venue}. ${event.price} PHP. QR e-ticket delivered by email.`}
         ogImage={event.image}
         canonicalPath="/product/french-kiss-night"
@@ -271,7 +271,7 @@ export function ProductFrenchKissNight() {
 
                 <div className="mt-5 flex gap-2 items-center text-xs text-[#2D2021]/40 justify-center">
                   <Shield size={13} />
-                  <span>Payments secured by Paddle. CÉLÉWÉ Events never stores card details.</span>
+                  <span>Payments secured by Paddle. CÈLEWÉ Events never stores card details.</span>
                 </div>
               </div>
 
@@ -304,7 +304,7 @@ export function ProductFrenchKissNight() {
           <h2 className="font-heading text-3xl md:text-4xl mb-6">About the Event</h2>
           <p className="text-muted-foreground text-lg leading-relaxed">{event.description}</p>
           <p className="text-muted-foreground mt-4 leading-relaxed">
-            Céléwé Events curates the guest list to ensure a cohesive, premium atmosphere throughout
+            Cèlewé Events curates the guest list to ensure a cohesive, premium atmosphere throughout
             the evening. Immersive décor, top-tier entertainment, and a crowd that understands the
             assignment — French Kiss Night is Manila nightlife at its finest.
           </p>

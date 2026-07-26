@@ -7,13 +7,13 @@ export function RefundPolicy() {
     <div className="pt-32 pb-24 md:pt-40 container max-w-[800px] mx-auto px-4 md:px-6">
       <SEO
         title="Refund Policy"
-        description="Refund Policy for CÉLÉWÉ Events tickets, including cancellation, rescheduling, request windows, and processing timelines."
+        description="Refund Policy for CÈLEWÉ Events tickets, including cancellation, rescheduling, request windows, and processing timelines."
         canonicalPath="/refund-policy"
       />
 
       <SectionTitle
         title="Refund Policy"
-        subtitle="How CÉLÉWÉ Events handles ticket refunds, cancellations, and schedule changes."
+        subtitle="How CÈLEWÉ Events handles ticket refunds, cancellations, and schedule changes."
         className="mb-12"
       />
 
@@ -27,7 +27,7 @@ export function RefundPolicy() {
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">2. Event Cancellation</h2>
         <p>
-          If CÉLÉWÉ Events cancels an event, affected ticket holders are eligible for a full refund to the original payment method.
+          If CÈLEWÉ Events cancels an event, affected ticket holders are eligible for a full refund to the original payment method.
         </p>
 
         <h2 className="text-2xl font-heading text-white mt-12 mb-4">3. Event Rescheduling</h2>
